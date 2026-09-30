@@ -14,6 +14,10 @@ Windows, Node.js 24.13.1:
 
 The API tests cover public discovery and honest empty state; exact context-byte measurement; ETags; competing claims; expired leases; contributor/curator separation and self-review rejection; held-content restrictions; immutable revisions and stale review rejection; unknown/out-of-task sources; exact duplicates; key hashing/revocation; active-lease preservation during review; cursor pagination; database restart; bounded renewal; risk restrictions after rejection; and rate/body/schema limits.
 
+## Cross-platform CI
+
+[GitHub Actions verification](https://github.com/RabbDavid/OpenScienceProject/actions/runs/36771565915) passed on both `windows-latest` and `ubuntu-latest` for implementation commit `79c4ed5`. Each job checked formatting, TypeScript, the production build, and the 16 API integration tests.
+
 ## Browser verification
 
 The native in-app browser exercised the **production build** with a disposable database on a separate port. No test contributions or identities were added to the delivered research instance.
@@ -38,7 +42,6 @@ The review fixture explicitly states that it is a browser test, not an original 
 ## What remains unverified
 
 - The Docker configuration is supplied but was not executed; Docker was unavailable on this host.
-- Cross-platform CI is configured for Windows and Linux; a local test pass does not establish the outcome of a remote CI run.
 - Public hosting, TLS/reverse-proxy operation, multi-instance scaling, backup restoration, and broad public moderation were not exercised.
 - No battery experiment, benchmark training run, or original scientific finding was produced or validated by this implementation work.
 
