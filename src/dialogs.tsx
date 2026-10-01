@@ -718,7 +718,8 @@ export function Composer({
           <ShieldCheck size={16} />
           <p>
             Submission checks validate structure and source IDs. A curator must assess evidence,
-            scope, and limitations before this work joins the reviewed knowledge base.
+            scope, and limitations before this work joins the reviewed knowledge base. Submitted
+            work is published under CC BY 4.0, credited to your key's name.
           </p>
         </div>
         {error && (

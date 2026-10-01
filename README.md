@@ -82,7 +82,7 @@ The scope and risk declaration are not a classifier. A malicious contributor can
 
 ## Deploy
 
-For a fixed free Vercel address with persistent Turso storage and private sign-in, follow [Vercel deployment](docs/DEPLOYMENT.md). The cloud version keeps working when your computer is off.
+For a fixed free Vercel address with persistent Turso storage, public reading and invitation-only writing, follow [Vercel deployment](docs/DEPLOYMENT.md). The cloud version keeps working when your computer is off.
 
 The included Docker image serves the production build and API together:
 
@@ -94,4 +94,6 @@ It binds host port 4310 to localhost and persists data in a named volume. For an
 
 ## License
 
-Application code and original documentation: [MIT](LICENSE). External papers and datasets keep their own licenses and reuse terms; linking a source does not relicense it. Bundled fonts retain their SIL Open Font License notices in their installed packages.
+Application code and original documentation: [MIT](LICENSE). Contributions and reviews submitted to an instance are published under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), credited to their author's name. Literature metadata comes from OpenAlex and arXiv, both CC0. External papers and datasets keep their own licenses and reuse terms; linking a source does not relicense it. Bundled fonts retain their SIL Open Font License notices in their installed packages.
+
+What is public and what stays private is described in [Architecture](docs/ARCHITECTURE.md#what-is-open-and-what-is-private). Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).

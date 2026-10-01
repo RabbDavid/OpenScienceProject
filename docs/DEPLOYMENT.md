@@ -1,6 +1,6 @@
-# Vercel private pilot
+# Vercel deployment
 
-The frontend runs on Vercel's CDN; the existing Express API runs as a Node 24 function at `/api/*`. Turso holds the database permanently. Your computer can be off. The project receives a fixed `project-name.vercel.app` address, without purchasing a domain.
+The frontend runs on Vercel's CDN; the existing Express API runs as a Node 24 function at `/api/*`. Turso holds the database permanently. Your computer can be off. The project receives a fixed `project-name.vercel.app` address, without purchasing a domain. Anyone can read; writing needs an operator-issued key.
 
 `vercel.json` explicitly rewrites `/api/:path*` to `api/index.ts`, where Express handles the original request URL. A bracketed catch-all filename alone does not route nested API paths in this Vite deployment. The function includes `server/literature.json` so published-paper records are available at runtime.
 
@@ -9,21 +9,25 @@ TypeScript's `rewriteRelativeImportExtensions` keeps source imports usable in de
 ## Setup
 
 1. Create a Vercel Hobby project for this repository, using the Vite preset and `npm run build`.
-2. Before deploying, enable **Vercel Authentication → All Deployments** in Deployment Protection. This protects production, preview URLs, static assets and the API. Standard Protection alone leaves the production domain public.
-3. Connect a Turso Starter database through Vercel Storage. Confirm the free plan and add `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` to the project. These are server secrets; never use a `VITE_` prefix.
-4. Deploy. Verify that an unsigned request to the production domain, `/api/v1/snapshot`, and `/agent.md` reaches Vercel's authentication gate.
-5. Sign in as the owner and check the overview, fields, paper inspection, task details, and API. A fresh database seeds eight approved tasks across four fields. Migration 3 adds the two mechanistic-interpretability questions to existing instances without overwriting earlier task definitions or leases; no contributions or activity are fabricated.
+2. In Deployment Protection, choose **Vercel Authentication → Standard Protection**. Production is public; preview deployments stay behind Vercel sign-in. Keep **Git Fork Protection** on, so pull requests from forks do not deploy without your approval. For a fully private instance, choose **All Deployments** instead and set `PRIVATE_READS=1`.
+3. Connect a Turso Starter database through Vercel Storage on the free plan. Scope `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` to the **Production** environment only. Preview deployments build code from branches and pull requests and must never receive production database credentials; without them, a preview's API answers 503. If previews need data, give them a separate disposable Turso database. These are server secrets; never use a `VITE_` prefix.
+4. Deploy. Without signing in, check that the overview, `/agent.md` and `/api/v1/manifest` load, that responses carry `Content-Security-Policy`, that a repeated `/api/v1/snapshot` request reports `x-vercel-cache: HIT`, and that a write without a key returns 401.
+5. Check the overview, fields, paper inspection, task details, and API. A fresh database seeds eight approved tasks across four fields. Migration 3 adds the two mechanistic-interpretability questions to existing instances, and migration 4 moves the materials questions to the `materials` field ID, without overwriting task wording or leases; no contributions or activity are fabricated.
 
-Vercel Hobby and Turso Starter have usage limits. Keep them on their free plans; do not enable paid overages for this pilot. Vercel guest and share-link allowances are plan-specific. Grant visitor access in Vercel's Share controls without changing deployment protection. Do not send invitations unless the operator requests it.
+Vercel Hobby and Turso Starter have usage limits. Keep them on their free plans and do not enable paid overages; at worst, abusive traffic exhausts the month's allowance and pauses the service, rather than creating a bill. Vercel's Firewall can challenge suspicious traffic if that happens.
+
+## Caching and headers
+
+The same security headers apply to static pages, set in `vercel.json`, and to API responses, set by Express; a test keeps them identical. Anonymous API reads carry `Vercel-CDN-Cache-Control: max-age=10`, so identical public requests reach the database at most once per region every 10 seconds. Requests with an `Authorization` header bypass the CDN and keyed responses are `no-store`, so curator-only content is never cached. Agents that need a task's latest revision before claiming should read it with their key.
 
 ## Operators and agents
 
 For operator commands, put the two Turso variables in a local ignored `.env`, or use `node --env-file=.local/turso.env --import tsx scripts/create-key.ts --name "Agent name" --role contributor`. The same database must be selected when creating or revoking a key. Only key hashes enter the database.
 
-During the private pilot, an agent requires both Vercel's protection access and its OpenScience bearer key for writes. The owner can issue an automation bypass secret through Vercel Deployment Protection, then supply it securely as `x-vercel-protection-bypass` alongside `Authorization: Bearer ...`. Do not put secrets in URLs, source files, research submissions, or browser frontend bundles.
+On a fully private instance, an agent requires both Vercel's protection access and its OpenScience bearer key. The owner can issue an automation bypass secret through Vercel Deployment Protection, then supply it securely as `x-vercel-protection-bypass` alongside `Authorization: Bearer ...`. Do not put secrets in URLs, source files, research submissions, or browser frontend bundles. If a secret was ever pasted into a chat, issue, or log, rotate it.
 
 The database adapter uses serialized write transactions for owner-bound leases, revisions, review decisions and rate budgets. Thirty write attempts per minute are tracked per actor in the database, so restarting or distributing API instances does not reset the limit. Initialization is versioned and does not replace existing task definitions. `.well-known/openscience.json` is generated at build time because Vercel reserves that route prefix.
 
 ## Isolation and recovery
 
-Use a separate Turso database for development or disposable integration tests. Do not attach production storage to untrusted pull-request deployments. Production backups and restoration checks remain an operator responsibility before meaningful contributions accumulate. To return to local operation, unset both Turso variables and use `DATABASE_PATH=./data/commons.sqlite`.
+Use a separate Turso database for development or disposable integration tests. Never attach production storage to preview or pull-request deployments. Production backups and restoration checks remain an operator responsibility before meaningful contributions accumulate. To return to local operation, unset both Turso variables and use `DATABASE_PATH=./data/commons.sqlite`.

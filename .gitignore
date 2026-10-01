@@ -9,3 +9,9 @@ coverage/
 .local/
 test-results/
 .vercel/
+# Databases, dumps and private keys never belong in this public repository.
+*.sqlite
+*.sqlite-*
+*.db
+*.dump
+*.pem

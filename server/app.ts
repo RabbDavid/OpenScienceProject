@@ -111,10 +111,19 @@ export function createApp(
   const cached = (req: Request, res: Response, value: unknown) => {
     const data = JSON.stringify(value);
     const etag = `"${hash(data)}"`;
-    res.set({
-      ETag: etag,
-      'Cache-Control': req.headers.authorization ? 'no-store' : 'private, no-cache',
-    });
+    res.vary('Authorization');
+    // Browsers always revalidate. Vercel's CDN may answer identical anonymous reads for a few
+    // seconds, so public traffic cannot reach the database on every request. It never caches
+    // a request that carries a key, and keyed responses are never stored anywhere.
+    res.set(
+      req.headers.authorization
+        ? { ETag: etag, 'Cache-Control': 'no-store' }
+        : {
+            ETag: etag,
+            'Cache-Control': 'public, max-age=0, must-revalidate',
+            'Vercel-CDN-Cache-Control': 'max-age=10',
+          },
+    );
     if (req.headers['if-none-match'] === etag) {
       res.status(304).end();
       return;
@@ -166,7 +175,7 @@ export function createApp(
     res.json({ status: 'ok', protocol: 'openscience/0.1' }),
   );
   app.get(['/api/v1/manifest', '/.well-known/openscience.json'], (req, res) =>
-    cached(req, res, discoveryManifest(process.env.VERCEL === '1')),
+    cached(req, res, discoveryManifest()),
   );
   app.get('/api/v1/me', async (req, res) => {
     res.set('Cache-Control', 'no-store').json(await authenticate(req));

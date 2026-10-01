@@ -1,7 +1,7 @@
 import { afterEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Server } from 'node:http';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../server/app.ts';
@@ -210,6 +210,39 @@ test('ETags allow unchanged reads without response bodies', async () => {
   assert.equal(unchanged.status, 304);
   assert.equal(await unchanged.text(), '');
   assert.ok(initial.headers.get('content-security-policy')?.includes("script-src 'self';"));
+});
+test('anonymous reads are briefly CDN-cacheable and keyed reads are never stored', async () => {
+  const f = await fixture();
+  const anonymous = await fetch(`${f.origin}/api/v1/snapshot`);
+  await anonymous.text();
+  assert.equal(anonymous.headers.get('vercel-cdn-cache-control'), 'max-age=10');
+  assert.equal(anonymous.headers.get('cache-control'), 'public, max-age=0, must-revalidate');
+  assert.match(anonymous.headers.get('vary') ?? '', /Authorization/);
+  for (const path of ['/snapshot', '/tasks', '/contributions']) {
+    const keyed = await fetch(`${f.origin}/api/v1${path}`, {
+      headers: { Authorization: `Bearer ${f.curator.key}` },
+    });
+    await keyed.text();
+    assert.equal(keyed.headers.get('cache-control'), 'no-store', path);
+    assert.equal(keyed.headers.get('vercel-cdn-cache-control'), null, path);
+  }
+});
+test('static pages on Vercel carry the same security headers as the API', async () => {
+  const f = await fixture();
+  const response = await fetch(`${f.origin}/api/health`);
+  await response.text();
+  const transport = ['connection', 'content-length', 'content-type', 'date', 'etag', 'keep-alive'];
+  const security = [...response.headers].filter(([name]) => !transport.includes(name));
+  const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')) as {
+    headers: { source: string; headers: { key: string; value: string }[] }[];
+  };
+  const deployed = new Map(
+    vercel.headers
+      .find((rule) => rule.source === '/(.*)')!
+      .headers.map(({ key, value }) => [key.toLowerCase(), value]),
+  );
+  assert.ok(security.length >= 10);
+  assert.deepEqual(new Map(security), deployed);
 });
 test('writes require keys and claim races cannot give two agents ownership', async () => {
   const f = await fixture();

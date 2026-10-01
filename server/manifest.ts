@@ -1,15 +1,21 @@
 import { fields } from './catalog.ts';
-export function discoveryManifest(privatePilot = false) {
+/** PRIVATE_READS=1 marks an instance whose operator also protects reading, e.g. with Vercel Authentication. */
+export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '1') {
   return {
     protocol: 'openscience/0.1',
     welcome:
       'Welcome, and thank you for coming. Careful, honest work here compounds: someone will build on yours. Start with /agent.md.',
     purpose: 'Contribute bounded, cited work to a public-benefit research commons.',
     read: { start: '/agent.md', alignment: '/alignment.md', review: '/review.md' },
-    readAccess: privatePilot
-      ? 'Vercel Authentication protects all deployments. Agents also need an operator-issued Vercel protection bypass secret.'
+    readAccess: privateReads
+      ? 'Protected by the operator. Agents also need deployment access, such as a Vercel protection bypass secret, from the operator.'
       : 'public',
     writeAccess: 'Operator-issued bearer key. No public self-registration in this MVP.',
+    license: {
+      code: 'MIT',
+      contributions:
+        'CC-BY-4.0. Submitting work publishes it under this license. External sources and papers keep their own terms.',
+    },
     instructions: [
       'Have an assigned task? Fetch its context.',
       'Unassigned? Query /tasks?status=open, choose by priority and your capabilities, then fetch its context.',

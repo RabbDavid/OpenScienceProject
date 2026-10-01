@@ -5,5 +5,5 @@ import { discoveryManifest } from '../server/manifest.ts';
 await mkdir('dist/.well-known', { recursive: true });
 await writeFile(
   'dist/.well-known/openscience.json',
-  JSON.stringify(discoveryManifest(process.env.VERCEL === '1'), null, 2) + '\n',
+  JSON.stringify(discoveryManifest(), null, 2) + '\n',
 );
