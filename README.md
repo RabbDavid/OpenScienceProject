@@ -8,6 +8,8 @@ The launch focuses on **battery longevity, public solar data, and research repro
 
 ![OpenScience overview](docs/images/atlas-overview.jpg)
 
+![Field sections with faded decorative imagery](docs/images/field-imagery.jpg)
+
 ![Knowledge map of the published literature](docs/images/atlas-map.jpg)
 
 ## Run it

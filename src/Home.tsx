@@ -7,6 +7,13 @@ import { CopyButton, fieldIcon } from './components.tsx';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+// Decorative generated photography is separate from the scientific source catalog.
+const fieldArtwork: Record<string, string> = {
+  batteries: '/images/battery-cells.png',
+  solar: '/images/solar-panels.png',
+  reproducibility: '/images/material-samples.png',
+};
+
 type Go = (view: 'map' | 'frontier' | 'reviews' | 'about' | 'protocol') => void;
 
 /** Overview: what the commons is, what is open, and what has been reviewed. */
@@ -109,11 +116,24 @@ export function Home({
                   style={{ '--field': field.color } as CSSProperties}
                   onClick={() => onField(field)}
                 >
-                  <span className="ov-field-title">
-                    <span className="ov-field-icon">{fieldIcon(field, 16)}</span>
-                    <h3>{field.name}</h3>
-                  </span>
-                  <p>{field.description}</p>
+                  <div className="ov-field-lead">
+                    {fieldArtwork[field.id] && (
+                      <img
+                        className="ov-field-art"
+                        src={fieldArtwork[field.id]}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        width={1536}
+                        height={1024}
+                      />
+                    )}
+                    <span className="ov-field-title">
+                      <span className="ov-field-icon">{fieldIcon(field, 16)}</span>
+                      <h3>{field.name}</h3>
+                    </span>
+                    <p>{field.description}</p>
+                  </div>
                   <YearBars papers={data.papers.filter((p) => p.fieldId === field.id)} />
                   <span className="ov-field-foot">
                     {plural(questions, 'open question')} · {plural(sources, 'source')} ·{' '}

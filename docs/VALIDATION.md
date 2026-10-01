@@ -62,3 +62,14 @@ The overview now embeds the interactive literature atlas as its opening scene. T
 - Publication histograms now cover each field's actual dated-paper range in two-year bins, exclude undated records, and leave zero-count bins empty.
 
 [Desktop overview](images/atlas-overview.jpg) · [Full map](images/atlas-map.jpg) · [Phone overview](images/atlas-mobile.jpg)
+
+## Field imagery · 1 October 2026
+
+- Added generated decorative battery, solar-panel, and materials imagery to the field sections, with a faded forest background in the sidebar. [Asset provenance and use](IMAGERY.md) are recorded separately from the research catalog.
+- `npm run check` passed the production build and all **17 integration tests**. The final build resolved all four local image assets.
+- Browser checks covered the default desktop viewport, a compact desktop width measured at **1025 CSS pixels**, and a phone width measured at **390 CSS pixels**. None had horizontal page overflow.
+- All three field images loaded with their expected intrinsic dimensions and empty alternative text. Images do not enter the buttons' accessible names. The charts remain outside the image layers.
+- Keyboard focus reached the field controls. Clicking the illustrated battery field on the phone opened the Battery longevity questions and its two tasks.
+- The sidebar background has no pointer events, and the final browser error and warning logs were empty.
+
+[Illustrated field sections](images/field-imagery.jpg) · [Overview and sidebar](images/atlas-overview.jpg)
