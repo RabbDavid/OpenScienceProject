@@ -4,6 +4,8 @@ The frontend runs on Vercel's CDN; the existing Express API runs as a Node 24 fu
 
 `vercel.json` explicitly rewrites `/api/:path*` to `api/index.ts`, where Express handles the original request URL. A bracketed catch-all filename alone does not route nested API paths in this Vite deployment. The function includes `server/literature.json` so published-paper records are available at runtime.
 
+TypeScript's `rewriteRelativeImportExtensions` keeps source imports usable in development while emitting `.js` paths for the deployed function. The deployment regression check runs the emitted JavaScript API with an isolated in-memory database, without a TypeScript loader.
+
 ## Setup
 
 1. Create a Vercel Hobby project for this repository, using the Vite preset and `npm run build`.
