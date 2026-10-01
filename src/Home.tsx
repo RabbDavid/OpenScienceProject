@@ -1,6 +1,6 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
-import type { Contribution, Field, Snapshot, Task } from '../shared/types.ts';
+import type { Contribution, Field, Paper, Snapshot, Task } from '../shared/types.ts';
 import { Atlas } from './AtlasView.tsx';
 import { dateLabel, prettyKind, prettyOrigin } from './api.ts';
 import { CopyButton, fieldIcon } from './components.tsx';
@@ -32,6 +32,7 @@ export function Home({
   const reviewed = data.contributions
     .filter((c) => c.status === 'accepted')
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const mostCited = [...data.papers].sort((a, b) => b.citedBy - a.citedBy).slice(0, 5);
   const go = (view: Parameters<Go>[0]) => (e: MouseEvent) => {
     e.preventDefault();
     navigate(view);
@@ -120,10 +121,12 @@ export function Home({
                 style={{ '--field': field.color } as CSSProperties}
                 onClick={() => onField(field)}
               >
-                <span className="ov-field-icon">{fieldIcon(field, 17)}</span>
-                <h3>{field.name}</h3>
+                <span className="ov-field-title">
+                  <span className="ov-field-icon">{fieldIcon(field, 16)}</span>
+                  <h3>{field.name}</h3>
+                </span>
                 <p>{field.description}</p>
-                <p className="ov-field-benefit">{field.benefit}</p>
+                <YearBars papers={data.papers.filter((p) => p.fieldId === field.id)} />
                 <span className="ov-field-foot">
                   {plural(questions, 'open question')} · {plural(sources, 'source')} ·{' '}
                   {plural(papers, 'paper')}
@@ -169,7 +172,27 @@ export function Home({
 
         <aside className="ov-side">
           <section className="ov-box">
-            <h2>Recently reviewed</h2>
+            <h2>Most cited on the map</h2>
+            <ol className="ov-cited">
+              {mostCited.map((paper) => (
+                <li key={paper.id}>
+                  <a href={paper.url} target="_blank" rel="noreferrer">
+                    {paper.title}
+                  </a>
+                  <small>
+                    <span
+                      className="field-dot"
+                      style={{ background: fieldOf(paper.fieldId).color }}
+                    />
+                    {paper.authors.split(',')[0]} · {paper.year} ·{' '}
+                    {paper.citedBy.toLocaleString('en')} citations
+                  </small>
+                </li>
+              ))}
+            </ol>
+          </section>
+          <section className="ov-box">
+            <h2>Reviewed work</h2>
             {reviewed.length ? (
               <ul className="ov-box-list">
                 {reviewed.slice(0, 5).map((c) => (
@@ -190,11 +213,8 @@ export function Home({
                 on the map.
               </p>
             )}
-          </section>
-          <section className="ov-box">
-            <h2>Recent activity</h2>
-            {data.events.length ? (
-              <ul className="ov-box-list">
+            {data.events.length > 0 && (
+              <ul className="ov-box-list ov-activity">
                 {data.events.slice(0, 6).map((event) => (
                   <li key={event.id}>
                     <span>
@@ -204,10 +224,6 @@ export function Home({
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="ov-box-empty">
-                No activity yet. Claims, submissions and reviews are logged here.
-              </p>
             )}
           </section>
           <section className="ov-box">
@@ -236,5 +252,49 @@ export function Home({
         </aside>
       </div>
     </div>
+  );
+}
+
+const FIRST_YEAR = 1996;
+const LAST_YEAR = 2025;
+const YEARS_PER_BAR = 2;
+
+/** Papers per publication year, in two-year bars. Earlier work counts in the first bar. */
+function YearBars({ papers }: { papers: Paper[] }) {
+  const bars = new Array(Math.ceil((LAST_YEAR - FIRST_YEAR + 1) / YEARS_PER_BAR)).fill(0);
+  for (const paper of papers) {
+    const year = Math.min(Math.max(paper.year ?? FIRST_YEAR, FIRST_YEAR), LAST_YEAR);
+    bars[Math.floor((year - FIRST_YEAR) / YEARS_PER_BAR)]++;
+  }
+  const max = Math.max(...bars, 1);
+  return (
+    <figure className="ov-years">
+      <svg
+        viewBox={`0 0 ${bars.length * 10} 40`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`${papers.length} papers by publication year, ${FIRST_YEAR} to ${LAST_YEAR}`}
+      >
+        {bars.map((n, i) => {
+          const h = n ? 4 + (n / max) * 36 : 1.5;
+          return (
+            <rect
+              key={i}
+              className={n ? '' : 'is-empty'}
+              x={i * 10 + 1}
+              y={40 - h}
+              width={8}
+              height={h}
+              rx={1.5}
+            />
+          );
+        })}
+      </svg>
+      <figcaption>
+        <span>{FIRST_YEAR}</span>
+        <span>Papers by year</span>
+        <span>{LAST_YEAR}</span>
+      </figcaption>
+    </figure>
   );
 }

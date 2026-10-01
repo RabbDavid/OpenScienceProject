@@ -239,7 +239,7 @@ export function Atlas({
     sources: true,
     literature: true,
     contributions: true,
-    wider: true,
+    wider: !preview,
   });
   const [legendOpen, setLegendOpen] = useState(false);
   const engine = useRef<Engine>({
@@ -440,7 +440,7 @@ export function Atlas({
       // as part of a larger map rather than a finished diagram.
       const k = Math.min(
         Math.max(
-          1.08 *
+          (e.layers.wider ? 1.08 : 0.97) *
             Math.min(
               (free.w - pad * 2) / Math.max(maxX - minX, 1),
               (free.h - pad * 2) / Math.max(maxY - minY, 1),

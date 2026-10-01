@@ -892,31 +892,56 @@ textarea::placeholder {
   border-color: color-mix(in srgb, var(--field) 60%, var(--line-2));
   box-shadow: var(--shadow-deep);
 }
+.ov-field-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 10px;
+}
 .ov-field-icon {
   display: inline-grid;
-  width: 36px;
-  height: 36px;
+  flex: none;
+  width: 32px;
+  height: 32px;
   place-items: center;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--field) 17%, var(--surface));
-  color: color-mix(in srgb, var(--field) 62%, var(--text));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--field) 22%, var(--surface));
+  color: color-mix(in srgb, var(--field) 55%, var(--text));
 }
 .ov-field h3 {
-  margin: 18px 0 6px;
-  font-size: 16px;
-  font-weight: 600;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 520;
   letter-spacing: -0.01em;
+}
+.ov-years {
+  margin: 20px 0 18px;
+}
+.ov-years svg {
+  display: block;
+  width: 100%;
+  height: 44px;
+}
+.ov-years rect {
+  fill: color-mix(in srgb, var(--field) 72%, var(--surface));
+}
+.ov-years rect.is-empty {
+  fill: var(--line-2);
+}
+.ov-years figcaption {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--text-4);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 .ov-field p {
   margin: 0;
   color: var(--text-2);
   font-size: 14px;
   line-height: 1.55;
-}
-.ov-field .ov-field-benefit {
-  margin: 8px 0 18px;
-  color: var(--text-3);
-  font-size: 13px;
 }
 .ov-field-foot {
   display: flex;
@@ -1036,6 +1061,42 @@ textarea::placeholder {
 .ov-box-list small {
   color: var(--text-3);
   font-size: 12px;
+}
+.ov-cited {
+  display: grid;
+  gap: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ov-cited li {
+  display: grid;
+  gap: 3px;
+}
+.ov-cited a {
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.ov-cited a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ov-cited small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.ov-cited .field-dot {
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+}
+.ov-activity {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 .ov-docs {
   margin: 0;
@@ -1564,10 +1625,11 @@ textarea::placeholder {
 }
 .panel-title {
   margin: 6px 18px 0;
-  font-size: 19px;
-  font-weight: 640;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
 }
 .atlas-panel.is-dark .panel-title {
   color: var(--text-2);
@@ -1919,11 +1981,8 @@ textarea::placeholder {
   color: var(--text-2);
 }
 .issue-kind {
-  padding: 1px 8px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
+  min-width: 132px;
   color: var(--text-2);
-  font-size: 12px;
 }
 .issue-effort {
   min-width: 70px;
@@ -2518,9 +2577,10 @@ textarea::placeholder {
 }
 .dialog-head h2 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.022em;
+  font-family: var(--font-serif);
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
 }
 .dialog-head p {
   max-width: 640px;
@@ -2691,10 +2751,11 @@ textarea::placeholder {
 }
 .drawer-title {
   margin: 0;
-  font-size: 25px;
-  font-weight: 650;
-  line-height: 1.18;
-  letter-spacing: -0.025em;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
 }
 .drawer-lede {
   margin: 0;
