@@ -138,6 +138,10 @@ export function About({ data, onMap }: { data: Snapshot; onMap: () => void }) {
         anyone cause harm. Further areas appear on the knowledge map as “not open yet”. Each needs
         its own list of exclusions before its first question is posted.
       </p>
+      <p>
+        Mechanistic interpretability is among the planned fields: studying the features and circuits
+        inside AI models, starting with reproducible experiments on open models.
+      </p>
 
       <h2 id="review">Review</h2>
       <p>

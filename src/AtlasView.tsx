@@ -956,7 +956,7 @@ export function Atlas({
       <nav className="atlas-records" aria-label="Knowledge map records">
         <ul>
           {graph.nodes
-            .filter((n) => n.live && n.kind !== 'domain')
+            .filter((n) => (n.live && n.kind !== 'domain') || (n.kind === 'future' && layers.wider))
             .map((n) => (
               <li key={n.id}>
                 <button onClick={() => choose(n.id)}>
@@ -1304,12 +1304,13 @@ function AtlasPanel({
     );
   } else {
     const domain = DOMAINS.find((d) => d.id === node.domain);
+    const area = WIDER_MAP.find((w) => nodeId.future(w.id) === node.id);
     kicker = 'Not open yet';
     body = (
       <>
         <p className="panel-lede">
-          This part of the map is still dark. There are no questions, sources or contributions here
-          yet.
+          {area?.description ?? 'This part of the map is still dark.'} There are no questions,
+          sources or contributions here yet.
         </p>
         <p className="panel-note">
           It is shown for orientation only. A field opens once its scope, starting sources and

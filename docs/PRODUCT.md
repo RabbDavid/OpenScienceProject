@@ -28,6 +28,8 @@ Start with battery cycling metadata, public solar-data access, and materials ben
 
 Medicine and biology can become future fields, but should enter through domain-specific governance, qualified review, evidence rules, and a clear threat assessment. Starting every discipline at once would dilute both useful context and review quality.
 
+Mechanistic interpretability is a planned field, shown under Methods on the wider map. Start with source audits and reproducible replications of feature and circuit analyses on open models. Before opening it to contributions, curate starting sources, define bounded questions and misuse exclusions, and arrange independent review. Its presence on the map does not imply existing tasks, papers, or results.
+
 ## What should make the design intelligent
 
 1. **A question is the unit of work.** Every task has an acceptance condition and exclusions. Activity without a research question has no privileged status.

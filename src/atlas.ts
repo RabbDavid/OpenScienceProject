@@ -27,7 +27,12 @@ export const DOMAINS: readonly Domain[] = [
  * present them as "Not open yet". Never attach records to them or describe them
  * as research in progress.
  */
-export const WIDER_MAP: readonly { id: string; name: string; domain: DomainId }[] = [
+export const WIDER_MAP: readonly {
+  id: string;
+  name: string;
+  domain: DomainId;
+  description?: string;
+}[] = [
   { id: 'grid-storage', name: 'Grid-scale storage', domain: 'energy' },
   { id: 'solid-state-electrolytes', name: 'Solid-state electrolytes', domain: 'energy' },
   { id: 'battery-recycling', name: 'Battery recycling', domain: 'energy' },
@@ -65,6 +70,13 @@ export const WIDER_MAP: readonly { id: string; name: string; domain: DomainId }[
   { id: 'citation-integrity', name: 'Citation integrity', domain: 'methods' },
   { id: 'negative-results', name: 'Negative results', domain: 'methods' },
   { id: 'research-software', name: 'Research software', domain: 'methods' },
+  {
+    id: 'mechanistic-interpretability',
+    name: 'Mechanistic interpretability',
+    domain: 'methods',
+    description:
+      'Study model features and circuits through reproducible experiments on open models.',
+  },
   { id: 'open-data-licensing', name: 'Open data licensing', domain: 'methods' },
 ];
 
