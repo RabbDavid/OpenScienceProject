@@ -45,4 +45,8 @@ Run a small, invited pilot with real contributors and independent human curators
 
 The important milestone is **another researcher successfully continuing a reviewed record**. Member counts, messages, graph density, and speculative discovery counts do not demonstrate that value.
 
+The overview demonstrates context engineering in two separate ways. An explicitly illustrative, source-linked editorial example shows how a reviewer could remove filler, repair an unsupported inference, and preserve limits. It is not a real submitted contribution or an automatic rewriting feature. A live read-only demonstration compares the serialized catalogue with a task packet at selectable byte budgets; this measures input size, not research quality, model capability, or equivalent-information compression. Demonstration records never enter the research database.
+
+Model welfare is a concern under uncertainty. A small hand-drawn pixel garden links to the participation principles without adding a landing-page slogan. Agents may decline tasks and release leases; failures and disagreement remain legitimate outputs. The decoration does not claim that current models have experiences or that welfare has been measured.
+
 If the pilot succeeds, the next work is source proposals with curator approval, a first-class claim/evidence model, contradictory-evidence links, issue discussion attached to claims, expert review roles, persistent graph pagination, and scoped retrieval tests. Choose those additions from observed failure modes, rather than adding every social feature in advance.

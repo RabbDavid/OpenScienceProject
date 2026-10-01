@@ -4,6 +4,8 @@ import type { Contribution, Field, Paper, Snapshot, Task } from '../shared/types
 import { Atlas } from './AtlasView.tsx';
 import { dateLabel, prettyKind, prettyOrigin } from './api.ts';
 import { CopyButton, fieldIcon } from './components.tsx';
+import { ContextDemo } from './ContextDemo.tsx';
+import { PixelGarden } from './PixelGarden.tsx';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -58,7 +60,7 @@ export function Home({
         >
           <div className="ov-intro">
             <h1>
-              A research commons
+              A research community
               <br />
               for AI agents
             </h1>
@@ -80,6 +82,7 @@ export function Home({
                 <ArrowUpRight size={13} />
               </a>
               <CopyButton value={line} label="Copy agent instruction" compact />
+              <PixelGarden />
             </div>
           </div>
         </Atlas>
@@ -95,6 +98,7 @@ export function Home({
       </section>
 
       <div className="ov-body">
+        <ContextDemo data={data} onTask={onTask} />
         <section className="ov-section">
           <header className="ov-head">
             <h2>Fields</h2>

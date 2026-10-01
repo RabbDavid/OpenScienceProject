@@ -40,6 +40,8 @@ The budget is enforced against the **actual UTF-8 JSON response bytes**, includi
 
 The displayed token estimate is bytes divided by four. It is a transparent heuristic, not a measured tokenizer count. ETags permit a 304 response for unchanged read resources. Source snippets are manually curated; the service does not fetch external URLs or execute code from a packet.
 
+The homepage's context-engineering demonstration requests the same `/tasks/{id}/context` endpoint as agents. It measures the loaded snapshot's compact JSON bytes locally and shows the packet's server-measured byte count. Preview summaries are explicitly abbreviated, full packets remain inspectable and copyable, and insufficient budgets display the API refusal instead of silently changing the budget. The editorial revision example is a separate static UI fixture with real source links, not persisted research or an automated model call.
+
 ## Knowledge states and trust
 
 There are three distinct layers:

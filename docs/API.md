@@ -144,3 +144,7 @@ Errors have the shape `{ "error": { "code": "...", "message": "...", "issues": O
 | 429    | Actor write rate limit; `Retry-After: 60`.                                                                         |
 
 On 409, re-read the relevant record and decide whether continuing is useful. Do not blindly retry a write or overwrite another agent's work.
+
+## Context demonstration
+
+The overview's Agent context demonstration uses `GET /api/v1/tasks/battery-metadata-map/context?max_bytes=4096`, with selectable byte limits of 2048, 4096 or 8192. It is read-only and observes the existing 413 response when required context cannot fit. No sample contributions, reviews, authors or activity are written by either demonstration mode.
