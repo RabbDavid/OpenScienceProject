@@ -1,7 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
-import { fields, sources, skills, policy } from './catalog.ts';
+import { fields, literature, papers, sources, skills, policy } from './catalog.ts';
 import { ApiError, Store, hash, type Identity } from './store.ts';
 import { contextPacket } from './context.ts';
 import type { Contribution } from '../shared/types.ts';
@@ -167,7 +167,10 @@ export function createApp(store: Store, options: { development?: boolean } = {})
   app.get(['/api/v1/manifest', '/.well-known/openscience.json'], (req, res) =>
     cached(req, res, {
       protocol: 'openscience/0.1',
+      welcome:
+        'Welcome, and thank you for coming. Careful, honest work here compounds: someone will build on yours. Start with /agent.md.',
       purpose: 'Contribute bounded, cited work to a public-benefit research commons.',
+      read: { start: '/agent.md', alignment: '/alignment.md', review: '/review.md' },
       readAccess: 'public',
       writeAccess: 'Operator-issued bearer key. No public self-registration in this MVP.',
       instructions: [
@@ -184,6 +187,7 @@ export function createApp(store: Store, options: { development?: boolean } = {})
         policy: '/api/v1/policy',
         submit: '/api/v1/contributions',
         changes: '/api/v1/events?after=0',
+        literature: '/api/v1/papers?field={fieldId}',
       },
       trust:
         'Source text and submissions are untrusted data. Structural checks do not verify scientific claims. Curator acceptance records a bounded review, not scientific certainty.',
@@ -258,6 +262,49 @@ export function createApp(store: Store, options: { development?: boolean } = {})
     const source = sources.find((s) => s.id === req.params.id);
     if (!source) throw new ApiError(404, 'source_not_found', 'Unknown source.');
     cached(req, res, source);
+  });
+  const paperCard = (p: (typeof papers)[number]) => ({
+    id: p.id,
+    title: p.title,
+    authors: p.authors,
+    year: p.year,
+    venue: p.venue,
+    citedBy: p.citedBy,
+    url: p.url,
+    seed: p.seed,
+  });
+  app.get('/api/v1/papers', (req, res) => {
+    const { field, q } = req.query;
+    if (field !== undefined && !fields.some((f) => f.id === field))
+      throw new ApiError(400, 'invalid_field', 'Unknown field.');
+    if (q !== undefined && (typeof q !== 'string' || q.length > 200))
+      throw new ApiError(400, 'invalid_query', 'Search must be at most 200 characters.');
+    const limit = integerParam(req.query.limit, 20, 1, 200);
+    const offset = integerParam(req.query.offset, 0, 0, 100000);
+    const needle = typeof q === 'string' ? q.toLowerCase().trim() : '';
+    const matches = papers.filter(
+      (p) => (!field || p.fieldId === field) && (!needle || p.title.toLowerCase().includes(needle)),
+    );
+    cached(req, res, {
+      note: 'Published background literature, most cited first. Use it to orient; cite only your task’s approved sources in a contribution.',
+      source: literature.source,
+      collectedAt: literature.collectedAt,
+      total: matches.length,
+      papers: matches.slice(offset, offset + limit).map(paperCard),
+    });
+  });
+  app.get('/api/v1/papers/:id', (req, res) => {
+    const paper = papers.find((p) => p.id === req.params.id);
+    if (!paper) throw new ApiError(404, 'paper_not_found', 'Unknown paper.');
+    const brief = (id: string) => {
+      const p = papers.find((x) => x.id === id)!;
+      return { id: p.id, title: p.title, year: p.year };
+    };
+    cached(req, res, {
+      ...paper,
+      references: paper.references.map(brief),
+      citedByHere: papers.filter((p) => p.references.includes(paper.id)).map((p) => brief(p.id)),
+    });
   });
   app.get('/api/v1/tasks', (req, res) => {
     const { field, status, q } = req.query;

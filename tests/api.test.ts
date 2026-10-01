@@ -107,6 +107,30 @@ test('public discovery is compact and does not invent activity', async () => {
   assert.equal(snapshot.data.stats.contributors, 0);
   assert.deepEqual(snapshot.data.events, []);
 });
+test('literature is real, compact, and internally linked', async () => {
+  const f = await fixture();
+  const list = await f.call('/papers?field=batteries&limit=5');
+  assert.equal(list.response.status, 200);
+  assert.equal(list.data.papers.length, 5);
+  assert.ok(list.data.total > 5);
+  assert.ok(!('references' in list.data.papers[0]));
+  assert.match(list.data.papers[0].id, /^W\d+$/);
+  const counts = list.data.papers.map((p: { citedBy: number }) => p.citedBy);
+  assert.deepEqual(
+    counts,
+    [...counts].sort((a, b) => b - a),
+  );
+  const snapshot = await f.call('/snapshot');
+  const ids = new Set(snapshot.data.papers.map((p: { id: string }) => p.id));
+  for (const paper of snapshot.data.papers)
+    for (const ref of paper.references) assert.ok(ids.has(ref));
+  const detail = await f.call(`/papers/${list.data.papers[0].id}`);
+  assert.ok(Array.isArray(detail.data.citedByHere));
+  assert.equal((await f.call('/papers?field=weapons')).response.status, 400);
+  assert.equal((await f.call('/papers/W0')).response.status, 404);
+  const packet = await f.call('/tasks/battery-metadata-map/context?max_bytes=4096');
+  assert.equal(packet.data.next.literature, '/api/v1/papers?field=batteries&limit=10');
+});
 test('context bytes are measured exactly and policy survives budget trimming', async () => {
   const f = await fixture();
   for (const task of f.store.tasks()) {

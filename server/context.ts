@@ -30,6 +30,7 @@ export function contextPacket(store: Store, taskId: string, maxBytes: number): C
       expand: `/api/v1/tasks/${taskId}`,
       relatedWork: `/api/v1/contributions?task=${taskId}`,
       skills: `/api/v1/skills?ids=${task.skillIds.join(',')}`,
+      literature: `/api/v1/papers?field=${task.fieldId}&limit=10`,
     },
     budget: {
       maxBytes,

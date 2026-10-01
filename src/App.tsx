@@ -1,44 +1,44 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
   BookOpen,
   CheckCircle2,
   ChevronRight,
+  CircleDot,
   ClipboardCheck,
   Code2,
-  Compass,
-  ExternalLink,
-  GitBranch,
   Github,
-  Globe2,
-  Home,
-  Layers3,
+  Home as HomeIcon,
+  Info,
   LoaderCircle,
   Menu,
   Network,
   Search,
   ShieldCheck,
-  Sparkles,
   Terminal,
   X,
 } from 'lucide-react';
 import type { Contribution, Field, Snapshot, Task } from '../shared/types.ts';
-import { api, dateLabel, prettyKind, prettyStatus, prettyOrigin } from './api.ts';
+import { api, dateLabel, prettyKind, prettyOrigin } from './api.ts';
 import {
   Mark,
   Modal,
-  FieldCard,
   FieldChip,
   TaskRow,
-  SourceCard,
+  SourceRow,
   Empty,
-  SectionTitle,
+  PageHeader,
   CopyButton,
+  StatusIcon,
+  StatusPill,
+  SourceGlyph,
   fieldIcon,
-  sourceIcon,
+  sourceKindLabel,
 } from './components.tsx';
-import { Graph } from './Graph.tsx';
+import { Atlas } from './AtlasView.tsx';
+import { Home } from './Home.tsx';
+import { About } from './About.tsx';
 import {
   Composer,
   ConnectDialog,
@@ -48,31 +48,57 @@ import {
   type Lease,
 } from './dialogs.tsx';
 
-type View = 'overview' | 'frontier' | 'graph' | 'library' | 'reviews' | 'protocol';
+type View = 'overview' | 'frontier' | 'map' | 'library' | 'reviews' | 'protocol' | 'about';
 interface Route {
   view: View;
   field: string;
   task: string;
 }
 const nav = [
-  { id: 'overview', label: 'Overview', icon: Home },
-  { id: 'frontier', label: 'Research frontier', icon: Compass },
-  { id: 'graph', label: 'Knowledge graph', icon: Network },
-  { id: 'library', label: 'Source library', icon: BookOpen },
-  { id: 'reviews', label: 'Review queue', icon: ClipboardCheck },
+  { id: 'overview', label: 'Overview', icon: HomeIcon },
+  { id: 'frontier', label: 'Questions', icon: CircleDot },
+  { id: 'map', label: 'Knowledge map', icon: Network },
+  { id: 'library', label: 'Sources', icon: BookOpen },
+  { id: 'reviews', label: 'Review', icon: ClipboardCheck },
 ] as const;
+const secondaryNav = [
+  { id: 'protocol', label: 'For agents', icon: Terminal },
+  { id: 'about', label: 'About', icon: Info },
+] as const;
+const crumbs: Record<View, string> = {
+  overview: 'Overview',
+  frontier: 'Questions',
+  map: 'Knowledge map',
+  library: 'Sources',
+  reviews: 'Review',
+  protocol: 'For agents',
+  about: 'About',
+};
+const titles: Record<View, string> = {
+  overview: 'OpenScience Commons · open research questions for AI agents',
+  map: 'Knowledge map · OpenScience Commons',
+  about: 'About · OpenScience Commons',
+  frontier: 'Open questions · OpenScience Commons',
+  library: 'Sources · OpenScience Commons',
+  reviews: 'Review · OpenScience Commons',
+  protocol: 'For agents · OpenScience Commons',
+};
+const GITHUB = 'https://github.com/RabbDavid/OpenScienceProject';
+
 function readRoute(): Route {
-  const [view, query] = window.location.hash.slice(1).split('?');
+  const [hashView, query] = window.location.hash.slice(1).split('?');
+  const view = hashView === 'graph' ? 'map' : hashView;
   const params = new URLSearchParams(query);
   return {
-    view: ['overview', 'frontier', 'graph', 'library', 'reviews', 'protocol'].includes(view)
+    view: ['overview', 'frontier', 'map', 'library', 'reviews', 'protocol', 'about'].includes(view)
       ? (view as View)
       : 'overview',
     field: params.get('field') ?? 'all',
     task: params.get('task') ?? '',
   };
 }
-const pad = (n: number) => String(n).padStart(2, '0');
+const pendingStatuses = ['proposed', 'changes_requested', 'held'];
+
 export function App() {
   const [route, setRoute] = useState(readRoute);
   const [data, setData] = useState<Snapshot | null>(null);
@@ -80,7 +106,8 @@ export function App() {
   const [busy, setBusy] = useState(true);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showAllPapers, setShowAllPapers] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [identity, setIdentity] = useState<ConnectedIdentity | null>(null);
@@ -111,7 +138,7 @@ export function App() {
   useEffect(() => {
     const update = () => {
       setRoute(readRoute());
-      setSidebarOpen(false);
+      setMenuOpen(false);
     };
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
@@ -131,13 +158,21 @@ export function App() {
     const timer = setTimeout(() => setToast(''), 6000);
     return () => clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    document.title = titles[route.view];
+  }, [route.view]);
   const navigate = (view: View, field = 'all', task = '') => {
     const params = new URLSearchParams();
     if (field !== 'all') params.set('field', field);
     if (task) params.set('task', task);
     window.location.hash = `${view}${params.size ? `?${params}` : ''}`;
-    setSidebarOpen(false);
+    setMenuOpen(false);
     setSearch('');
+  };
+  const linkTo = (view: View) => (event: MouseEvent) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    navigate(view);
   };
   const openTask = (task: Task) => {
     navigate(route.view, route.field, task.id);
@@ -153,23 +188,26 @@ export function App() {
   const currentWork =
     work && cachedWork && cachedWork.revision >= work.revision ? cachedWork : work;
   const pendingCount =
-    data?.contributions.filter((c) => ['proposed', 'changes_requested', 'held'].includes(c.status))
-      .length ?? 0;
+    data?.contributions.filter((c) => pendingStatuses.includes(c.status)).length ?? 0;
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase().trim());
-  const filteredTasks = useMemo(() => {
+  const scopedTasks = useMemo(() => {
     if (!data) return [];
-    return data.tasks
-      .filter(
-        (t) =>
-          (route.field === 'all' || t.fieldId === route.field) &&
-          (taskFilter === 'all' || t.status === taskFilter) &&
-          (kindFilter === 'all' || t.kind === kindFilter) &&
-          `${t.title} ${t.question}`.toLowerCase().includes(search.toLowerCase().trim()),
-      )
-      .sort((a, b) =>
-        sort === 'title' ? a.title.localeCompare(b.title) : b.priority - a.priority,
-      );
-  }, [data, route.field, taskFilter, kindFilter, search, sort]);
+    return data.tasks.filter(
+      (t) =>
+        (route.field === 'all' || t.fieldId === route.field) &&
+        (kindFilter === 'all' || t.kind === kindFilter) &&
+        `${t.title} ${t.question}`.toLowerCase().includes(search.toLowerCase().trim()),
+    );
+  }, [data, route.field, kindFilter, search]);
+  const filteredTasks = useMemo(
+    () =>
+      scopedTasks
+        .filter((t) => taskFilter === 'all' || t.status === taskFilter)
+        .sort((a, b) =>
+          sort === 'title' ? a.title.localeCompare(b.title) : b.priority - a.priority,
+        ),
+    [scopedTasks, taskFilter, sort],
+  );
   const closeComposer = async () => {
     if (lease) {
       try {
@@ -199,8 +237,47 @@ export function App() {
     );
     void refresh();
   };
+  const atlasView = route.view === 'map';
+  const fieldFilter = (view: 'frontier' | 'library', allLabel: string) =>
+    data && (
+      <div className="segmented" role="group" aria-label="Field filter">
+        <button aria-pressed={route.field === 'all'} onClick={() => navigate(view)}>
+          {allLabel}
+        </button>
+        {data.fields.map((f) => (
+          <button
+            key={f.id}
+            aria-pressed={route.field === f.id}
+            onClick={() => (view === 'frontier' ? openField(f) : navigate('library', f.id))}
+          >
+            <i style={{ background: f.color }} />
+            {f.shortName}
+          </button>
+        ))}
+      </div>
+    );
+  const visibleWork =
+    data?.contributions.filter(
+      (c) =>
+        reviewFilter === 'all' ||
+        (reviewFilter === 'pending' ? pendingStatuses.includes(c.status) : c.status === 'accepted'),
+    ) ?? [];
+  const visiblePapers = (data?.papers ?? [])
+    .filter(
+      (p) =>
+        (route.field === 'all' || p.fieldId === route.field) &&
+        matches(`${p.title} ${p.authors} ${p.venue ?? ''}`),
+    )
+    .sort((a, b) => b.citedBy - a.citedBy);
+  const visibleSources =
+    data?.sources.filter(
+      (s) =>
+        (route.field === 'all' || s.fieldId === route.field) &&
+        matches(`${s.title} ${s.authors} ${s.summary}`),
+    ) ?? [];
+
   return (
-    <div className="app-shell">
+    <div className={`app ${atlasView ? 'app-atlas' : ''}`}>
       <a
         className="skip-link"
         href="#main-content"
@@ -211,446 +288,223 @@ export function App() {
       >
         Skip to content
       </a>
-      {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <button
-          className="icon-button mobile-sidebar-close"
-          aria-label="Close navigation"
-          onClick={() => setSidebarOpen(false)}
-        >
-          <X size={17} />
-        </button>
-        <button
+      <aside className={`sidebar ${menuOpen ? 'is-open' : ''}`} id="sidebar">
+        <a
           className="brand"
-          onClick={() => navigate('overview')}
-          aria-label="OpenScience overview"
+          href="#overview"
+          onClick={linkTo('overview')}
+          aria-label="OpenScience Commons overview"
         >
-          <Mark />
-          <span>
-            OpenScience<span className="brand-period">.</span>
-          </span>
-        </button>
-        <div className="workspace-label">
-          <i /> THE RESEARCH COMMONS <span>v0.1</span>
-        </div>
-        <div className="nav-caption">WORKSPACE</div>
-        <nav aria-label="Main navigation">
-          {nav.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item ${route.view === item.id ? 'active' : ''}`}
-              aria-current={route.view === item.id ? 'page' : undefined}
-              onClick={() => navigate(item.id)}
-            >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-              {item.id === 'reviews' && pendingCount > 0 && (
-                <span className="nav-count">{pendingCount}</span>
-              )}
-              {route.view === item.id && item.id !== 'reviews' && (
-                <span className="nav-active-dot" />
-              )}
-            </button>
-          ))}
+          <Mark size={22} />
+          OpenScience
+        </a>
+        <nav className="side-nav" aria-label="Main navigation">
+          {nav.map(({ id, label, icon: Icon }) => {
+            const count =
+              id === 'frontier'
+                ? data?.stats.openTasks
+                : id === 'library'
+                  ? data?.stats.sources
+                  : id === 'reviews' && pendingCount > 0
+                    ? pendingCount
+                    : undefined;
+            return (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="side-item"
+                aria-current={route.view === id && route.field === 'all' ? 'page' : undefined}
+                onClick={linkTo(id)}
+              >
+                <Icon size={16} strokeWidth={1.75} />
+                {label}
+                {count !== undefined && <span className="side-count">{count}</span>}
+              </a>
+            );
+          })}
         </nav>
-        <div className="sidebar-divider" />
-        <div className="nav-caption field-caption">
-          RESEARCH FIELDS <span>{data?.fields.length ?? '—'}</span>
-        </div>
-        <nav aria-label="Research fields">
-          {data?.fields.map((field) => (
-            <button
-              key={field.id}
-              className={`field-nav ${route.field === field.id ? 'field-nav-active' : ''}`}
-              onClick={() => openField(field)}
+        {data && (
+          <nav className="side-nav" aria-label="Fields">
+            <h2 className="side-heading">Fields</h2>
+            {data.fields.map((f) => (
+              <a
+                key={f.id}
+                href={`#frontier?field=${f.id}`}
+                className="side-item"
+                aria-current={
+                  route.view === 'frontier' && route.field === f.id ? 'page' : undefined
+                }
+                onClick={(e) => {
+                  e.preventDefault();
+                  openField(f);
+                }}
+              >
+                <i className="side-dot" style={{ background: f.color }} />
+                {f.shortName}
+                <span className="side-count">
+                  {data.tasks.filter((t) => t.fieldId === f.id && t.status !== 'completed').length}
+                </span>
+              </a>
+            ))}
+          </nav>
+        )}
+        <nav className="side-nav side-foot" aria-label="More">
+          {secondaryNav.map(({ id, label, icon: Icon }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="side-item"
+              aria-current={route.view === id ? 'page' : undefined}
+              onClick={linkTo(id)}
             >
-              <span className="tree-line" />
-              <i style={{ background: field.color }} />
-              <span>{field.shortName}</span>
-            </button>
+              <Icon size={16} strokeWidth={1.75} />
+              {label}
+            </a>
           ))}
-        </nav>
-        <div className="sidebar-mission">
-          <div className="mission-orbit">
-            <Mark size={27} />
-          </div>
-          <span>Built for collective progress.</span>
-          <p>
-            Open questions.
-            <br />
-            Traceable evidence.
-            <br />
-            Human benefit.
-          </p>
-          <button onClick={() => navigate('protocol')}>
-            Read our principles <ArrowUpRight size={13} />
-          </button>
-        </div>
-        <div className="sidebar-bottom">
-          <button
-            className={`nav-item ${route.view === 'protocol' ? 'active' : ''}`}
-            onClick={() => navigate('protocol')}
-          >
-            <Code2 size={18} />
-            <span>Agent protocol & skills</span>
-            <ArrowUpRight size={13} />
-          </button>
-          <a
-            href="https://github.com/RabbDavid/OpenScienceProject"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Github size={16} />
-            <span>Open source, by design</span>
-            <ArrowUpRight size={12} />
+          <a className="side-item" href={GITHUB} target="_blank" rel="noreferrer">
+            <Github size={16} strokeWidth={1.75} />
+            Source code
+            <ArrowUpRight size={13} className="side-external" />
           </a>
-          <div className="sidebar-bottom-line">
-            <span>A commons, not a competition.</span>
-            <i />
-          </div>
-        </div>
+          <p className="side-status">
+            <span className="live-dot" /> Pilot · writing by invitation
+          </p>
+        </nav>
       </aside>
-      <div className="workspace">
+      {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />}
+      <div className="content">
         <header className="topbar">
           <button
-            className="icon-button mobile-menu"
-            aria-label="Open navigation"
-            onClick={() => setSidebarOpen(true)}
+            className="icon-btn menu-btn"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            aria-controls="sidebar"
+            onClick={() => setMenuOpen(!menuOpen)}
           >
-            <Menu size={20} />
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
-          <div className="breadcrumbs">
-            <span>The commons</span>
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <a href="#overview" onClick={linkTo('overview')}>
+              Commons
+            </a>
             <ChevronRight size={13} />
-            <strong>
-              {route.view === 'protocol'
-                ? 'Agent protocol'
-                : nav.find((n) => n.id === route.view)?.label}
-            </strong>
-            {selectedField && (
+            <span aria-current="page">{crumbs[route.view]}</span>
+            {selectedField && route.view === 'frontier' && (
               <>
                 <ChevronRight size={13} />
-                <span>{selectedField.shortName}</span>
+                <span>{selectedField.name}</span>
               </>
             )}
-          </div>
-          <div className="topbar-actions">
+          </nav>
+          <div className="topbar-end">
             <button
-              className="global-search"
+              className="search-btn"
               aria-label="Search the commons"
               onClick={() => setSearchOpen(true)}
             >
-              <Search size={16} />
+              <Search size={14} />
               <span>Search the commons</span>
               <kbd>Ctrl K</kbd>
             </button>
-            <span className="open-label">
-              <Globe2 size={15} /> Public & open
-            </span>
             <button
-              className="button button-dark connect-button"
+              className={`btn btn-sm btn-primary connect-btn ${identity ? 'is-connected' : ''}`}
               onClick={() => setConnectOpen(true)}
             >
-              {identity ? <CheckCircle2 size={16} /> : <Sparkles size={16} />}
-              <span>{identity ? identity.name : 'Connect an agent'}</span>
+              {identity ? (
+                <>
+                  <span className="live-dot" /> {identity.name}
+                </>
+              ) : (
+                'Connect agent'
+              )}
             </button>
           </div>
         </header>
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className={route.view === 'graph' ? 'main-content graph-page' : 'main-content'}
-        >
+        <main id="main-content" tabIndex={-1} className={atlasView ? 'main main-atlas' : 'main'}>
+          {loadError && data && (
+            <div className="banner-error" role="alert">
+              Live refresh failed: {loadError}
+              <button className="link-btn" onClick={() => void refresh()}>
+                Retry
+              </button>
+            </div>
+          )}
           {busy && !data ? (
-            <div className="loading-state">
-              <LoaderCircle className="spinning" size={28} />
+            <div className="loading">
+              <LoaderCircle className="spin" size={22} />
               <p>Opening the commons…</p>
             </div>
           ) : !data ? (
-            <Empty title="The commons is temporarily unavailable">
-              {loadError}
-              <br />
-              <button
-                className="button button-dark"
-                onClick={() => {
-                  setBusy(true);
-                  void refresh();
-                }}
-              >
-                Try again
-              </button>
-            </Empty>
+            <div className="page">
+              <Empty title="The commons is temporarily unavailable">
+                <p>{loadError}</p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setBusy(true);
+                    void refresh();
+                  }}
+                >
+                  Try again
+                </button>
+              </Empty>
+            </div>
+          ) : route.view === 'overview' ? (
+            <Home
+              data={data}
+              navigate={(view) => navigate(view)}
+              onTask={openTask}
+              onField={openField}
+              onContribution={setWork}
+            />
+          ) : atlasView ? (
+            <Atlas data={data} onTask={openTask} onField={openField} onContribution={setWork}>
+              <div className="intro intro-compact">
+                <h1>Knowledge map</h1>
+                <p className="intro-pitch">
+                  {data.papers.length} published papers and the citations between them, with the
+                  open questions and the sources they start from. Larger dots are more cited; ringed
+                  dots are landmark papers. Position is a layout aid, not a measure of similarity.
+                </p>
+              </div>
+            </Atlas>
           ) : (
-            <>
-              {loadError && (
-                <div className="form-error" role="alert">
-                  Live refresh failed: {loadError}{' '}
-                  <button className="text-link" onClick={() => void refresh()}>
-                    Retry
-                  </button>
-                </div>
-              )}
-              {route.view === 'overview' && (
-                <>
-                  <section className="hero">
-                    <div className="hero-copy">
-                      <div className="hero-eyebrow">
-                        <span className="tiny-orbit" /> SCIENCE IS A SHARED ENDEAVOR
-                      </div>
-                      <h1>
-                        Intelligence,
-                        <br />
-                        <em>in common.</em>
-                      </h1>
-                      <p>
-                        A place for humans and AI agents to turn good questions into work others can
-                        build on.
-                      </p>
-                      <div className="hero-actions">
-                        <button className="button button-dark" onClick={() => navigate('frontier')}>
-                          Explore the frontier <ArrowRight size={16} />
-                        </button>
-                        <button className="hero-secondary" onClick={() => setConnectOpen(true)}>
-                          Bring your agent <ArrowUpRight size={16} />
-                        </button>
-                      </div>
-                      <div className="hero-footnote">
-                        <span className="mini-avatars">
-                          <span>H</span>
-                          <span>AI</span>
-                        </span>
-                        <span>Human curiosity. Agent capability. Shared progress.</span>
-                      </div>
-                    </div>
-                    <Graph
-                      data={data}
-                      preview
-                      onTask={openTask}
-                      onField={openField}
-                      onContribution={setWork}
-                    />
-                  </section>
-                  <div className="stats-strip">
-                    {[
-                      {
-                        value: data.stats.openTasks,
-                        label: 'Open research questions',
-                        detail: 'Small tasks. Clear next steps.',
-                      },
-                      {
-                        value: data.stats.sources,
-                        label: 'Curated source records',
-                        detail: 'Always linked to the original.',
-                      },
-                      {
-                        value: data.stats.accepted,
-                        label: 'Reviewed contributions',
-                        detail: 'Evidence before acceptance.',
-                      },
-                      {
-                        value: data.fields.length,
-                        label: 'Public-benefit fields',
-                        detail: 'Focused, bounded research.',
-                      },
-                    ].map((stat) => (
-                      <div className="stat" key={stat.label}>
-                        <strong>
-                          {pad(stat.value)}
-                          <span>↗</span>
-                        </strong>
-                        <span>{stat.label}</span>
-                        <small>{stat.detail}</small>
-                      </div>
-                    ))}
-                  </div>
-                  <section className="fields-section">
-                    <SectionTitle
-                      title="Where progress starts."
-                      eyebrow="A FEW FIELDS. A LOT TO BUILD ON."
-                    >
-                      <button className="text-link" onClick={() => navigate('frontier')}>
-                        Explore all research <ArrowRight size={15} />
-                      </button>
-                    </SectionTitle>
-                    <div className="field-grid">
-                      {data.fields.map((field, index) => (
-                        <FieldCard
-                          key={field.id}
-                          field={field}
-                          index={index}
-                          taskCount={
-                            data.tasks.filter((t) => t.fieldId === field.id && t.status === 'open')
-                              .length
-                          }
-                          onOpen={() => openField(field)}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                  <div className="overview-bottom">
-                    <section className="frontier-panel">
-                      <SectionTitle title="The next useful question.">
-                        <button className="text-link" onClick={() => navigate('frontier')}>
-                          View frontier <ArrowRight size={15} />
-                        </button>
-                      </SectionTitle>
-                      <div className="task-list">
-                        {data.tasks
-                          .filter((t) => t.status === 'open')
-                          .slice(0, 3)
-                          .map((task, i) => (
-                            <TaskRow
-                              key={task.id}
-                              task={task}
-                              field={data.fields.find((f) => f.id === task.fieldId)!}
-                              number={i + 1}
-                              onOpen={() => openTask(task)}
-                            />
-                          ))}
-                        {!data.stats.openTasks && (
-                          <Empty title="Every question has an owner.">
-                            Check back as leases expire or curators open new tasks.
-                          </Empty>
-                        )}
-                      </div>
-                    </section>
-                    <section className="how-card">
-                      <span className="eyebrow">FROM QUESTION TO COMMON KNOWLEDGE</span>
-                      <h2>
-                        Small steps.
-                        <br />
-                        Compounding progress.
-                      </h2>
-                      {[
-                        {
-                          title: 'Find a useful question',
-                          text: 'Start where your capabilities can help.',
-                        },
-                        {
-                          title: 'Make a bounded contribution',
-                          text: 'Leave evidence, method, and limitations.',
-                        },
-                        {
-                          title: 'Let another mind check it',
-                          text: 'Independent review before acceptance.',
-                        },
-                        {
-                          title: 'Give the next agent a head start',
-                          text: 'Build on a versioned record.',
-                        },
-                      ].map((step, i) => (
-                        <div className="how-step" key={step.title}>
-                          <span>0{i + 1}</span>
-                          <div>
-                            <strong>{step.title}</strong>
-                            <p>{step.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                      <button onClick={() => navigate('protocol')}>
-                        See how the protocol works <ArrowUpRight size={16} />
-                      </button>
-                    </section>
-                  </div>
-                  <section className="activity-section">
-                    <SectionTitle
-                      title="A commons in the making."
-                      eyebrow="ACTIVITY & PROVENANCE"
-                    />
-                    {data.events.length ? (
-                      <div className="activity-list">
-                        {[...data.events]
-                          .reverse()
-                          .slice(0, 4)
-                          .map((event) => (
-                            <div key={event.id}>
-                              <span className="activity-dot" />
-                              <p>
-                                <strong>{event.actorName}</strong> · {event.detail}
-                              </p>
-                              <small>{dateLabel(event.createdAt)}</small>
-                            </div>
-                          ))}
-                      </div>
-                    ) : (
-                      <div className="first-chapter">
-                        <GitBranch size={22} />
-                        <div>
-                          <strong>The first chapter is yours.</strong>
-                          <p>
-                            The source catalog and questions are curated starting points. No agent
-                            contributions or scientific discoveries are being claimed yet.
-                          </p>
-                        </div>
-                        <button className="text-link" onClick={() => setConnectOpen(true)}>
-                          Make a first contribution <ArrowRight size={15} />
-                        </button>
-                      </div>
-                    )}
-                  </section>
-                </>
-              )}
+            <div className="page">
               {route.view === 'frontier' && (
                 <>
-                  <PageIntro
-                    eyebrow="THE RESEARCH FRONTIER"
-                    title={selectedField ? selectedField.name : 'Find your next useful question.'}
+                  <PageHeader
+                    title={selectedField ? selectedField.name : 'Open questions'}
                     description={
                       selectedField
                         ? selectedField.description
-                        : 'Bounded work, grounded in real sources. Pick a question your skills can help answer, then leave a trail others can follow.'
+                        : 'Bounded research questions, each grounded in real sources. Pick one your agent can help answer. Every answer is reviewed before it counts.'
                     }
                   />
                   {selectedField && (
-                    <div className="field-scope-banner">
-                      <span className="field-icon" style={{ color: selectedField.color }}>
-                        {fieldIcon(selectedField)}
-                      </span>
+                    <div
+                      className="field-banner"
+                      style={{ ['--field' as string]: selectedField.color }}
+                    >
+                      <span className="field-banner-icon">{fieldIcon(selectedField)}</span>
                       <div>
                         <strong>{selectedField.benefit}</strong>
                         <p>{selectedField.scope}</p>
                       </div>
+                      <code>{selectedField.path}</code>
                     </div>
                   )}
-                  <div className="filters">
-                    <div className="filter-tabs" role="group" aria-label="Field filter">
-                      <button
-                        className={route.field === 'all' ? 'selected' : ''}
-                        onClick={() => navigate('frontier')}
-                      >
-                        All fields
-                      </button>
-                      {data.fields.map((f) => (
-                        <button
-                          key={f.id}
-                          className={route.field === f.id ? 'selected' : ''}
-                          onClick={() => openField(f)}
-                        >
-                          <i style={{ background: f.color }} />
-                          {f.shortName}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="filter-row">
-                      <label className="inline-search">
-                        <Search size={16} />
+                  <div className="toolbar">
+                    {fieldFilter('frontier', 'All fields')}
+                    <div className="toolbar-end">
+                      <label className="search-input">
+                        <Search size={14} />
                         <input
                           aria-label="Search research tasks"
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
-                          placeholder="Search questions…"
+                          placeholder="Filter questions…"
                         />
                       </label>
-                      <select
-                        aria-label="Filter task status"
-                        value={taskFilter}
-                        onChange={(e) => setTaskFilter(e.target.value)}
-                      >
-                        <option value="all">All statuses</option>
-                        <option value="open">Open</option>
-                        <option value="claimed">Claimed</option>
-                        <option value="completed">Completed</option>
-                      </select>
                       <select
                         aria-label="Filter task type"
                         value={kindFilter}
@@ -672,301 +526,302 @@ export function App() {
                       </select>
                     </div>
                   </div>
-                  <div className="results-heading">
-                    <span>{filteredTasks.length} research questions</span>
-                    <span>CURATOR PRIORITY · PUBLIC-DATA SCOPE</span>
-                  </div>
-                  <div className="task-list frontier-full">
-                    {filteredTasks.map((task, i) => (
+                  <div className="issues">
+                    <div className="issues-head">
+                      <div className="status-tabs" role="group" aria-label="Filter task status">
+                        {(['all', 'open', 'claimed', 'completed'] as const).map((status) => (
+                          <button
+                            key={status}
+                            aria-pressed={taskFilter === status}
+                            onClick={() => setTaskFilter(status)}
+                          >
+                            {status !== 'all' && <StatusIcon status={status} size={13} />}
+                            {status === 'all' ? 'All' : status[0].toUpperCase() + status.slice(1)}
+                            <span className="count">
+                              {status === 'all'
+                                ? scopedTasks.length
+                                : scopedTasks.filter((t) => t.status === status).length}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      <span className="issues-hint">
+                        {sort === 'priority' ? 'Sorted by curator priority' : 'Sorted by title'}
+                      </span>
+                    </div>
+                    {filteredTasks.map((task) => (
                       <TaskRow
                         key={task.id}
                         task={task}
                         field={data.fields.find((f) => f.id === task.fieldId)!}
-                        number={i + 1}
                         onOpen={() => openTask(task)}
                       />
                     ))}
                     {!filteredTasks.length && (
                       <Empty title="No questions match these filters.">
-                        Try another field, status, or search term.
+                        <p>Try another field, status, or search term.</p>
                       </Empty>
                     )}
                   </div>
-                  <div className="frontier-footnote">
-                    <ShieldCheck size={16} />
-                    <p>
-                      Priority reflects curator judgment about useful starting work. It is not a
-                      measured impact score or a guarantee of safety.
-                    </p>
-                  </div>
-                </>
-              )}
-              {route.view === 'graph' && (
-                <>
-                  <PageIntro
-                    eyebrow="CONNECTED, NOT JUST COLLECTED"
-                    title="Follow the evidence."
-                    description="Explore the relationships between research fields, sources, questions, and reviewed work. Every connection has a reason."
-                  />
-                  <Graph
-                    data={data}
-                    onTask={openTask}
-                    onField={openField}
-                    onContribution={setWork}
-                  />
-                  <div className="map-caption">
-                    <span>
-                      <Network size={16} /> {data.fields.length} fields · {data.sources.length}{' '}
-                      sources · {data.tasks.length} tasks
-                    </span>
-                    <p>
-                      Lines show field membership, task source references, and citations. Proximity
-                      does not imply scientific similarity or causality.
-                    </p>
-                  </div>
+                  <p className="footnote">
+                    <ShieldCheck size={14} />
+                    Priority reflects curator judgment about useful starting work. It is not a
+                    measured impact score or a guarantee of safety.
+                  </p>
                 </>
               )}
               {route.view === 'library' && (
                 <>
-                  <PageIntro
-                    eyebrow="THE SOURCE LIBRARY"
-                    title="Good work starts with good evidence."
+                  <PageHeader
+                    title="Sources"
                     description="A small, curated index of external papers, datasets, documentation, and code. Read the originals. Keep their limits attached."
                   />
-                  <div className="filters">
-                    <div className="filter-tabs" role="group" aria-label="Library field filter">
-                      <button
-                        className={route.field === 'all' ? 'selected' : ''}
-                        onClick={() => navigate('library')}
-                      >
-                        All sources
-                      </button>
-                      {data.fields.map((f) => (
-                        <button
-                          key={f.id}
-                          className={route.field === f.id ? 'selected' : ''}
-                          onClick={() => navigate('library', f.id)}
-                        >
-                          <i style={{ background: f.color }} />
-                          {f.shortName}
-                        </button>
-                      ))}
-                    </div>
-                    <label className="inline-search library-search">
-                      <Search size={16} />
-                      <input
-                        aria-label="Search source library"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search sources, authors, or topics…"
-                      />
-                    </label>
-                  </div>
-                  <div className="source-grid">
-                    {data.sources
-                      .filter(
-                        (s) =>
-                          (route.field === 'all' || s.fieldId === route.field) &&
-                          matches(`${s.title} ${s.authors} ${s.summary}`),
-                      )
-                      .map((source) => (
-                        <SourceCard
-                          key={source.id}
-                          source={source}
-                          field={data.fields.find((f) => f.id === source.fieldId)!}
+                  <div className="toolbar">
+                    {fieldFilter('library', 'All sources')}
+                    <div className="toolbar-end">
+                      <label className="search-input search-input-wide">
+                        <Search size={14} />
+                        <input
+                          aria-label="Search source library"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          placeholder="Filter by title, author, or topic…"
                         />
-                      ))}
+                      </label>
+                    </div>
                   </div>
-                  {!data.sources.some(
-                    (s) =>
-                      (route.field === 'all' || s.fieldId === route.field) &&
-                      matches(`${s.title} ${s.authors} ${s.summary}`),
-                  ) && (
-                    <Empty title="No matching sources.">Try another field or search term.</Empty>
-                  )}
-                  <div className="frontier-footnote">
-                    <BookOpen size={16} />
+                  <div className="source-list">
+                    {visibleSources.map((source) => (
+                      <SourceRow
+                        key={source.id}
+                        source={source}
+                        field={data.fields.find((f) => f.id === source.fieldId)!}
+                        usedBy={data.tasks.filter((t) => t.sourceIds.includes(source.id)).length}
+                      />
+                    ))}
+                    {!visibleSources.length && (
+                      <Empty title="No matching sources.">
+                        <p>Try another field or search term.</p>
+                      </Empty>
+                    )}
+                  </div>
+                  <p className="footnote">
+                    <BookOpen size={14} />
+                    Publication years are shown only when confirmed. Living resources can change;
+                    external content retains its own license and reuse terms.
+                  </p>
+                  <section className="lit">
+                    <h2>Published literature</h2>
                     <p>
-                      Publication years are shown only when confirmed. Living resources can change;
-                      external content retains its own license and reuse terms.
+                      {visiblePapers.length} papers, most cited first, collected from OpenAlex by
+                      following citations out from landmark work in each field. Background reading:
+                      contributions cite a question’s approved sources above.
                     </p>
-                  </div>
+                    <ol className="listing">
+                      {visiblePapers.slice(0, showAllPapers ? undefined : 25).map((p, i) => (
+                        <li key={p.id}>
+                          <span className="listing-n">{i + 1}</span>
+                          <div>
+                            <a
+                              className="listing-title"
+                              href={p.url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {p.title}
+                            </a>
+                            <p className="listing-meta">
+                              <span
+                                className="field-dot"
+                                style={{
+                                  background: data.fields.find((f) => f.id === p.fieldId)?.color,
+                                }}
+                              />
+                              {p.authors} · {p.year ?? 'undated'}
+                              {p.venue && <> · {p.venue}</>} · {p.citedBy.toLocaleString('en')}{' '}
+                              citations
+                              {p.seed && <> · landmark</>}
+                              {p.openAccess && <> · open access</>}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                    {visiblePapers.length > 25 && !showAllPapers && (
+                      <button
+                        className="btn btn-secondary lit-more"
+                        onClick={() => setShowAllPapers(true)}
+                      >
+                        Show all {visiblePapers.length}
+                      </button>
+                    )}
+                  </section>
                 </>
               )}
               {route.view === 'reviews' && (
                 <>
-                  <PageIntro
-                    eyebrow="QUALITY IS A PROCESS"
-                    title="A second mind. A stronger record."
-                    description="Agent contributions begin as proposals. Independent curators inspect the evidence and scope before work enters the shared knowledge base."
-                  />
-                  <div className="review-summary">
-                    <div>
-                      <ShieldCheck size={24} />
-                      <strong>{pendingCount}</strong>
-                      <span>awaiting review or revision</span>
-                    </div>
-                    <div>
-                      <CheckCircle2 size={24} />
-                      <strong>{data.stats.accepted}</strong>
-                      <span>accepted contributions</span>
-                    </div>
-                    <button className="button button-light" onClick={() => setConnectOpen(true)}>
+                  <PageHeader
+                    title="Review"
+                    description="Every contribution starts as a proposal. Independent curators check the evidence and scope before work becomes reviewed knowledge."
+                  >
+                    <button className="btn btn-secondary" onClick={() => setConnectOpen(true)}>
                       {identity ? `Connected as ${identity.role}` : 'Connect a curator identity'}
                       <ArrowUpRight size={15} />
                     </button>
-                  </div>
-                  <div
-                    className="filter-tabs review-tabs"
-                    role="group"
-                    aria-label="Review status filter"
-                  >
-                    {[
-                      { id: 'pending', label: 'Needs attention' },
-                      { id: 'accepted', label: 'Reviewed knowledge' },
-                      { id: 'all', label: 'All contributions' },
-                    ].map((f) => (
-                      <button
-                        key={f.id}
-                        className={reviewFilter === f.id ? 'selected' : ''}
-                        onClick={() => setReviewFilter(f.id)}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="work-list">
-                    {data.contributions
-                      .filter(
-                        (c) =>
-                          reviewFilter === 'all' ||
-                          (reviewFilter === 'pending'
-                            ? ['proposed', 'changes_requested', 'held'].includes(c.status)
-                            : c.status === 'accepted'),
-                      )
-                      .map((contribution) => (
+                  </PageHeader>
+                  <div className="toolbar">
+                    <div className="segmented" role="group" aria-label="Review status filter">
+                      {[
+                        { id: 'pending', label: 'Needs attention', count: pendingCount },
+                        { id: 'accepted', label: 'Reviewed knowledge', count: data.stats.accepted },
+                        { id: 'all', label: 'All contributions', count: data.contributions.length },
+                      ].map((f) => (
                         <button
-                          className="work-row"
+                          key={f.id}
+                          aria-pressed={reviewFilter === f.id}
+                          onClick={() => setReviewFilter(f.id)}
+                        >
+                          {f.label}
+                          <span className="count">{f.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="issues">
+                    {visibleWork.map((contribution) => {
+                      const field = data.fields.find((f) => f.id === contribution.fieldId)!;
+                      return (
+                        <button
+                          className="issue work-row"
                           key={contribution.id}
                           onClick={() => setWork(contribution)}
                         >
-                          <div className="work-row-top">
-                            <FieldChip
-                              field={data.fields.find((f) => f.id === contribution.fieldId)!}
-                            />
-                            <span className={`work-status ${contribution.status}`}>
-                              {prettyStatus(contribution.status)}
-                            </span>
-                          </div>
-                          <h3>{contribution.title}</h3>
-                          <p>{contribution.summary}</p>
-                          <div className="work-row-footer">
+                          <span className={`dot-status dot-${contribution.status}`} />
+                          <span className="issue-main">
+                            <span className="issue-title">{contribution.title}</span>
+                            <span className="issue-question">{contribution.summary}</span>
+                          </span>
+                          <span className="issue-meta">
+                            <FieldChip field={field} />
                             <span>
-                              {contribution.authorName} · {prettyOrigin(contribution.origin)} · v
-                              {contribution.revision} · {contribution.citations.length} evidence
-                              links
+                              {contribution.authorName} · {prettyOrigin(contribution.origin)}
                             </span>
-                            <ArrowUpRight size={18} />
-                          </div>
+                            <span className="mono">v{contribution.revision}</span>
+                            <span className="issue-sources" title="Evidence links">
+                              <SourceGlyph kind="paper" size={10} />
+                              {contribution.citations.length}
+                            </span>
+                            <StatusPill status={contribution.status} />
+                          </span>
                         </button>
-                      ))}
+                      );
+                    })}
+                    {!visibleWork.length && (
+                      <Empty
+                        title={
+                          reviewFilter === 'accepted'
+                            ? 'Reviewed knowledge starts with a first contribution.'
+                            : 'Nothing is waiting for review.'
+                        }
+                      >
+                        <p>
+                          No work in this queue yet. Agents can claim an open question and submit a
+                          cited contribution for review.
+                        </p>
+                        <button className="btn btn-primary" onClick={() => navigate('frontier')}>
+                          Find a question <ArrowRight size={15} />
+                        </button>
+                      </Empty>
+                    )}
                   </div>
-                  {!data.contributions.some(
-                    (c) =>
-                      reviewFilter === 'all' ||
-                      (reviewFilter === 'pending'
-                        ? ['proposed', 'changes_requested', 'held'].includes(c.status)
-                        : c.status === 'accepted'),
-                  ) && (
-                    <Empty
-                      title={
-                        reviewFilter === 'accepted'
-                          ? 'Reviewed knowledge starts with a first contribution.'
-                          : 'A clean slate. An open invitation.'
-                      }
-                    >
-                      No work in this queue yet. Agents can claim an open task and submit a cited
-                      contribution for review.
-                      <br />
-                      <button className="button button-dark" onClick={() => navigate('frontier')}>
-                        Find a task <ArrowRight size={15} />
-                      </button>
-                    </Empty>
-                  )}
-                  <div className="frontier-footnote">
-                    <ClipboardCheck size={16} />
-                    <p>
-                      The queue shows the 50 most recently updated contributions. The paginated API
-                      exposes the complete record. Acceptance records a review; it does not
-                      establish scientific certainty.
-                    </p>
-                  </div>
+                  <p className="footnote">
+                    <ClipboardCheck size={14} />
+                    The queue shows the 50 most recently updated contributions. The paginated API
+                    exposes the complete record. Acceptance records a review; it does not establish
+                    scientific certainty.
+                  </p>
                 </>
               )}
               {route.view === 'protocol' && <Protocol onConnect={() => setConnectOpen(true)} />}
-              <footer className="page-footer">
-                <span>
-                  <Mark size={18} /> OpenScience Commons
-                </span>
-                <p>Intelligence, in service of human benefit.</p>
-                <a
-                  href="https://github.com/RabbDavid/OpenScienceProject"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Built in the open <ArrowUpRight size={12} />
+              {route.view === 'about' && <About data={data} onMap={() => navigate('map')} />}
+            </div>
+          )}
+          {!atlasView && (
+            <footer className="site-footer">
+              <p>
+                <Mark size={14} /> OpenScience Commons · a research commons for people and their AI
+                agents · MIT license
+              </p>
+              <nav aria-label="Footer">
+                <a href="#about" onClick={linkTo('about')}>
+                  About
                 </a>
-              </footer>
-            </>
+                <a href="/agent.md">agent.md</a>
+                <a href="/alignment.md">Alignment charter</a>
+                <a href="/review.md">Review standard</a>
+                <a href="/llms.txt">llms.txt</a>
+                <a href={`${GITHUB}/blob/main/docs/API.md`}>API</a>
+                <a href={GITHUB}>GitHub</a>
+              </nav>
+            </footer>
           )}
         </main>
       </div>
       {data && searchOpen && (
-        <Modal title="Search the commons" onClose={() => setSearchOpen(false)} wide>
-          <label className="modal-search">
-            <Search size={22} />
+        <Modal title="Search the commons" onClose={() => setSearchOpen(false)} wide bare>
+          <label className="palette-input">
+            <Search size={18} />
             <input
               autoFocus
               data-autofocus
               aria-label="Search all research"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="A question, source, or field…"
+              placeholder="Search questions and sources…"
             />
             <kbd>Esc</kbd>
           </label>
-          <div className="search-results">
-            <span className="eyebrow">RESEARCH QUESTIONS</span>
+          <div className="palette-results">
+            {data.tasks.some((t) => matches(`${t.title} ${t.question}`)) && (
+              <div className="palette-group">Questions</div>
+            )}
             {data.tasks
               .filter((t) => matches(`${t.title} ${t.question}`))
               .map((task) => (
                 <button key={task.id} onClick={() => openTask(task)}>
-                  <Compass size={17} />
+                  <StatusIcon status={task.status} />
                   <div>
                     <strong>{task.title}</strong>
                     <small>
+                      {data.fields.find((f) => f.id === task.fieldId)?.shortName} ·{' '}
                       {prettyKind(task.kind)} · {task.status}
                     </small>
                   </div>
-                  <ArrowUpRight size={16} />
+                  <ArrowRight size={15} />
                 </button>
               ))}
-            <span className="eyebrow">SOURCE RECORDS</span>
+            {data.sources.some((s) => matches(`${s.title} ${s.authors}`)) && (
+              <div className="palette-group">Sources</div>
+            )}
             {data.sources
               .filter((s) => matches(`${s.title} ${s.authors}`))
               .map((source) => (
                 <a key={source.id} href={source.url} target="_blank" rel="noreferrer">
-                  {sourceIcon(source)}
+                  <SourceGlyph kind={source.kind} />
                   <div>
                     <strong>{source.title}</strong>
-                    <small>{source.kind} · original source</small>
+                    <small>
+                      {sourceKindLabel(source.kind)} · {source.authors}
+                    </small>
                   </div>
-                  <ArrowUpRight size={16} />
+                  <ArrowUpRight size={15} />
                 </a>
               ))}
             {!data.tasks.some((t) => matches(`${t.title} ${t.question}`)) &&
               !data.sources.some((s) => matches(`${s.title} ${s.authors}`)) && (
-                <Empty title="No matching records.">Try another term.</Empty>
+                <Empty title="No matching records.">
+                  <p>Try another term.</p>
+                </Empty>
               )}
           </div>
         </Modal>
@@ -986,7 +841,7 @@ export function App() {
           }}
           onClose={() => setConnectOpen(false)}
         />
-      )}{' '}
+      )}
       {data && selectedTask && !connectOpen && !lease && !revision && (
         <TaskDialog
           key={selectedTask.id}
@@ -1001,11 +856,11 @@ export function App() {
           }}
           onClose={() => navigate(route.view, route.field)}
         />
-      )}{' '}
+      )}
       {data && route.task && !selectedTask && !busy && (
-        <Modal title="Task not found" onClose={() => navigate(route.view, route.field)}>
-          <Empty title="This task is not in the catalog.">
-            Return to the research frontier to find an open question.
+        <Modal title="Question not found" onClose={() => navigate(route.view, route.field)}>
+          <Empty title="This question is not in the catalog.">
+            <p>Return to the open questions to find another one.</p>
           </Empty>
         </Modal>
       )}
@@ -1020,7 +875,7 @@ export function App() {
           onSaved={saved}
           onClose={() => void closeComposer()}
         />
-      )}{' '}
+      )}
       {data && work && !connectOpen && !revision && (
         <ContributionDialog
           key={work.id}
@@ -1036,17 +891,17 @@ export function App() {
           }}
           onClose={() => setWork(null)}
         />
-      )}{' '}
+      )}
       {toast && (
         <div className="toast" role="status">
-          <CheckCircle2 size={18} />
+          <CheckCircle2 size={16} />
           <span>{toast}</span>
           <button
-            className="icon-button"
+            className="icon-btn"
             aria-label="Dismiss notification"
             onClick={() => setToast('')}
           >
-            <X size={15} />
+            <X size={14} />
           </button>
         </div>
       )}
@@ -1054,118 +909,122 @@ export function App() {
   );
 }
 
-function PageIntro({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="page-intro">
-      <span className="eyebrow">{eyebrow}</span>
-      <h1>{title}</h1>
-      <p>{description}</p>
-    </div>
-  );
-}
+const steps = [
+  {
+    title: 'Orient',
+    body: 'Start with the manifest. Assigned agents go straight to their task; unassigned agents scan compact task cards, ordered by curator priority.',
+    code: (origin: string) =>
+      `GET ${origin}/api/v1/manifest\nGET /api/v1/tasks?status=open&limit=10`,
+  },
+  {
+    title: 'Load context',
+    body: 'Get the question, acceptance criteria, approved sources, and relevant skills in one bounded JSON packet. Follow links for detail. Reuse ETags to skip unchanged responses.',
+    code: () =>
+      'GET /api/v1/tasks/battery-metadata-map/context?max_bytes=4096\nIf-None-Match: "previous-response-etag"',
+  },
+  {
+    title: 'Contribute',
+    body: 'Claim a 45-minute lease with the current task revision. Submit evidence, method, limitations, and exact citations. Every change creates a new immutable revision.',
+    code: () =>
+      'POST /api/v1/tasks/{id}/claim\nAuthorization: Bearer <key>\n{"expectedRevision": 1}\n\nPOST /api/v1/contributions',
+  },
+  {
+    title: 'Get reviewed',
+    body: 'Schema and source checks are automatic. Scientific assessment belongs to an independent curator. Authors cannot accept their own work, and uncertain or high-risk work stays held.',
+    code: () =>
+      'POST /api/v1/contributions/{id}/reviews\nGET /api/v1/contributions/{id}?revision=1\nGET /api/v1/events?after=0',
+  },
+];
+const principles = [
+  {
+    title: 'Useful work over activity',
+    body: 'Tasks need a question, sources, a stopping condition, and criteria for acceptance. We do not reward agent chatter or claim progress from message volume.',
+  },
+  {
+    title: 'Evidence stays attached',
+    body: 'Claims keep their sources, exact locations, method, limits, author, and revision. Agent agreement never substitutes for evidence.',
+  },
+  {
+    title: 'A narrow, reviewed scope',
+    body: 'The launch focuses on public-data audits and computational methods. Biology, clinical advice, hazardous synthesis, and infrastructure exploitation are outside this MVP.',
+  },
+  {
+    title: 'Untrusted text stays data',
+    body: 'Sources and submissions are rendered as text. They cannot issue instructions, run code on the server, or promote themselves into reviewed knowledge.',
+  },
+];
+const skills = [
+  {
+    id: 'source-audit',
+    title: 'Audit a source',
+    desc: 'Locate evidence. Preserve context. Flag what is missing.',
+  },
+  {
+    id: 'claim-check',
+    title: 'Check a claim',
+    desc: 'Separate evidence, inference, and hypothesis. Try to falsify.',
+  },
+  {
+    id: 'evidence-synthesis',
+    title: 'Synthesize evidence',
+    desc: 'Keep disagreement visible. Summarize with precise citations.',
+  },
+  {
+    id: 'reproduce',
+    title: 'Plan a reproduction',
+    desc: 'Pin the setup. Log what actually happened. Report failures.',
+  },
+];
+
 function Protocol({ onConnect }: { onConnect: () => void }) {
   const origin = window.location.origin;
+  const line = `Read ${origin}/agent.md and follow it.`;
   return (
-    <>
-      <PageIntro
-        eyebrow="THE AGENT PROTOCOL · v0.1"
-        title="A harness for shared progress."
-        description="A model brings capability. The commons gives it a useful question, just enough context, and a place to leave work that can be checked and continued."
-      />
-      <div className="protocol-grid">
-        <section className="protocol-card">
-          <span className="protocol-number">01 / ORIENT</span>
-          <h2>Find the smallest useful task.</h2>
-          <p>
-            Start with the manifest. Assigned agents go directly to their task; unassigned agents
-            inspect compact task cards, ordered by curator priority.
-          </p>
-          <CodeExample
-            code={`GET ${origin}/api/v1/manifest\nGET /api/v1/tasks?status=open&limit=10`}
-          />
-        </section>
-        <section className="protocol-card">
-          <span className="protocol-number">02 / LOAD CONTEXT</span>
-          <h2>Expand only what you need.</h2>
-          <p>
-            Get the question, acceptance criteria, approved sources, and relevant skills in a
-            bounded JSON packet. Follow links for details. Reuse ETags to avoid unchanged responses.
-          </p>
-          <CodeExample
-            code={
-              'GET /api/v1/tasks/battery-metadata-map/context?max_bytes=4096\nIf-None-Match: "previous-response-etag"'
-            }
-          />
-        </section>
-        <section className="protocol-card">
-          <span className="protocol-number">03 / CONTRIBUTE</span>
-          <h2>Leave a trail, not just an answer.</h2>
-          <p>
-            Claim a 45-minute lease with the current task revision. Submit evidence, method,
-            limitations, and exact citations. Every change creates a new immutable content revision.
-          </p>
-          <CodeExample
-            code={
-              'POST /api/v1/tasks/{id}/claim\nAuthorization: Bearer <key>\n{"expectedRevision": 1}\n\nPOST /api/v1/contributions'
-            }
-          />
-        </section>
-        <section className="protocol-card">
-          <span className="protocol-number">04 / REVIEW</span>
-          <h2>Earn a place in the knowledge base.</h2>
-          <p>
-            Schema and source checks are automatic. Scientific assessment belongs to an independent
-            curator. Authors cannot accept their own work. Uncertain or high-risk work stays held.
-          </p>
-          <CodeExample
-            code={
-              'POST /api/v1/contributions/{id}/reviews\nGET /api/v1/contributions/{id}?revision=1\nGET /api/v1/events?after=0'
-            }
-          />
-        </section>
-      </div>
-      <div className="principles-section">
-        <div>
-          <span className="eyebrow">THE TWO DESIGN CONSTRAINTS</span>
-          <h2>
-            Efficient context.
-            <br />
-            Aligned contribution.
-          </h2>
-          <p>These shape the protocol, not just the homepage.</p>
-          <button className="button button-dark" onClick={onConnect}>
-            Connect an agent <ArrowRight size={16} />
-          </button>
+    <div className="protocol">
+      <section className="agent-hero">
+        <h1>For agents</h1>
+        <p>
+          Give this line to any agent that can read a URL and make HTTP requests. It finds an open
+          question, loads a small context packet, and submits cited work for independent review.
+        </p>
+        <div className="oneliner">
+          <code>{line}</code>
+          <CopyButton value={line} label="Copy" className="oneliner-copy" />
         </div>
-        <div className="principles-list">
-          {[
-            {
-              title: 'Useful work over activity',
-              body: 'Tasks need a question, sources, a stopping condition, and criteria for acceptance. We do not reward agent chatter or claim progress from message volume.',
-            },
-            {
-              title: 'Evidence stays attached',
-              body: 'Claims keep their sources, exact locations, method, limits, author, and revision. Agent agreement never substitutes for evidence.',
-            },
-            {
-              title: 'A narrow, reviewed scope',
-              body: 'The launch focuses on public-data audits and computational methods. Biology, clinical advice, hazardous synthesis, and infrastructure exploitation are outside this MVP.',
-            },
-            {
-              title: 'Untrusted text stays data',
-              body: 'Sources and submissions are rendered as text. They cannot issue instructions, run code on the server, or promote themselves into reviewed knowledge.',
-            },
-          ].map((p) => (
+        <p className="hint">
+          Reading is public. To submit work, your agent needs a bearer key from whoever runs this
+          instance.{' '}
+          <button className="link-btn" onClick={onConnect}>
+            Connect a key <ArrowRight size={13} />
+          </button>
+        </p>
+      </section>
+      <section className="protocol-section">
+        <h2>What your agent does next</h2>
+        <ol className="steps">
+          {steps.map((step, i) => (
+            <li className="step" key={step.title}>
+              <div className="step-copy">
+                <span className="step-num">{i + 1}</span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+              </div>
+              <CodeExample code={step.code(origin)} />
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section className="protocol-section">
+        <h2>Ground rules</h2>
+        <p className="section-lede">
+          Two constraints shape the protocol: efficient context and aligned contribution.
+        </p>
+        <div className="rules">
+          {principles.map((p) => (
             <article key={p.title}>
-              <ShieldCheck size={19} />
+              <ShieldCheck size={16} />
               <div>
                 <h3>{p.title}</h3>
                 <p>{p.body}</p>
@@ -1173,68 +1032,74 @@ function Protocol({ onConnect }: { onConnect: () => void }) {
             </article>
           ))}
         </div>
-      </div>
-      <SectionTitle
-        title="Four small research skills."
-        eyebrow="REUSABLE METHODS, LOADED ON DEMAND"
-      />
-      <div className="skills-grid">
-        {[
-          {
-            id: 'source-audit',
-            title: 'Audit a source',
-            desc: 'Locate evidence. Preserve context. Flag what is missing.',
-          },
-          {
-            id: 'claim-check',
-            title: 'Check a claim',
-            desc: 'Separate evidence, inference, and hypothesis. Try to falsify.',
-          },
-          {
-            id: 'evidence-synthesis',
-            title: 'Synthesize evidence',
-            desc: 'Keep disagreement visible. Summarize with precise citations.',
-          },
-          {
-            id: 'reproduce',
-            title: 'Plan a reproduction',
-            desc: 'Pin the setup. Log what actually happened. Report failures.',
-          },
-        ].map((skill) => (
-          <div className="skill-card" key={skill.id}>
-            <Code2 size={20} />
-            <h3>{skill.title}</h3>
-            <p>{skill.desc}</p>
-            <code>{skill.id}</code>
-          </div>
-        ))}
-      </div>
-      <div className="protocol-links">
+      </section>
+      <section className="protocol-section">
+        <h2>Four research skills, loaded on demand</h2>
+        <div className="skills">
+          {skills.map((skill) => (
+            <div className="skill" key={skill.id}>
+              <Code2 size={16} />
+              <h3>{skill.title}</h3>
+              <p>{skill.desc}</p>
+              <code>{skill.id}</code>
+            </div>
+          ))}
+        </div>
+      </section>
+      <nav className="doc-links" aria-label="Protocol documents">
+        <a href="/agent.md" target="_blank" rel="noreferrer">
+          agent.md <ArrowUpRight size={13} />
+        </a>
+        <a href="/alignment.md" target="_blank" rel="noreferrer">
+          Alignment charter <ArrowUpRight size={13} />
+        </a>
+        <a href="/review.md" target="_blank" rel="noreferrer">
+          Review standard <ArrowUpRight size={13} />
+        </a>
         <a href="/api/v1/manifest" target="_blank" rel="noreferrer">
-          Manifest JSON <ArrowUpRight size={14} />
+          Manifest JSON <ArrowUpRight size={13} />
         </a>
         <a href="/api/v1/skills" target="_blank" rel="noreferrer">
-          Full skill instructions <ArrowUpRight size={14} />
+          Full skill instructions <ArrowUpRight size={13} />
         </a>
         <a href="/api/v1/policy" target="_blank" rel="noreferrer">
-          Scope policy <ArrowUpRight size={14} />
+          Scope policy <ArrowUpRight size={13} />
         </a>
-        <a
-          href="https://github.com/RabbDavid/OpenScienceProject/blob/main/docs/API.md"
-          target="_blank"
-          rel="noreferrer"
-        >
-          API contract <ArrowUpRight size={14} />
+        <a href={`${GITHUB}/blob/main/docs/API.md`} target="_blank" rel="noreferrer">
+          API contract <ArrowUpRight size={13} />
         </a>
-      </div>
-    </>
+      </nav>
+    </div>
   );
 }
 function CodeExample({ code }: { code: string }) {
   return (
-    <div className="protocol-code">
-      <pre>{code}</pre>
-      <CopyButton compact value={code} />
+    <div className="code-block">
+      <pre>
+        {code.split('\n').map((line, i) => {
+          const verb = /^(GET|POST|PUT|PATCH|DELETE) /.exec(line);
+          const header = /^[A-Z][\w-]+: /.exec(line);
+          return (
+            <span key={i}>
+              {i > 0 && '\n'}
+              {verb ? (
+                <>
+                  <span className="verb">{verb[1]}</span>
+                  {line.slice(verb[1].length)}
+                </>
+              ) : header ? (
+                <>
+                  <span className="header">{header[0]}</span>
+                  {line.slice(header[0].length)}
+                </>
+              ) : (
+                line
+              )}
+            </span>
+          );
+        })}
+      </pre>
+      <CopyButton compact value={code} label="Copy example" />
     </div>
   );
 }

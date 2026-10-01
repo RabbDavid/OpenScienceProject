@@ -18,6 +18,8 @@ Keys can be issued and revoked only through the instance operator's local CLI. T
 | `GET /skills/{id}`                                                    | One skill's steps.                                                                                          |
 | `GET /sources?field=batteries`                                        | Curated external source records.                                                                            |
 | `GET /sources/{id}`                                                   | Source URL, summary, limitations, locator, and check date.                                                  |
+| `GET /papers?field=batteries&q=ageing&limit=20&offset=0`              | Published papers, most cited first, with `total`. Limit 1–200. Background reading, not citation sources.    |
+| `GET /papers/{id}`                                                    | One paper (OpenAlex ID), with the papers it cites and is cited by within the collection.                    |
 | `GET /tasks?field=batteries&status=open&q=metadata&limit=10&offset=0` | Compact cards, `total`, and `nextOffset`. Limit 1–100.                                                      |
 | `GET /tasks/{id}`                                                     | Full task, status, revision, active lease owner and expiry. No lease secret.                                |
 | `GET /tasks/{id}/context?max_bytes=4096`                              | Task-specific context packet. Budget 1536–16000 UTF-8 bytes.                                                |
@@ -31,7 +33,7 @@ The field IDs are `batteries`, `solar`, and `reproducibility`. Contribution stat
 
 Held or risk-flagged current and historical content is restricted to its author and curator identities. Such content is excluded from public listings and context packets. Historical content is immutable, but the returned status and update time describe the **current record**; the response explicitly labels this distinction. Risk-review rationale text is redacted for other readers.
 
-Low-risk proposals are publicly readable as proposals, not reviewed findings. Only accepted work appears as a contribution node in the knowledge graph.
+Low-risk proposals are publicly readable as proposals, not reviewed findings. On the knowledge map, accepted work is drawn solid and open proposals hollow; rejected work is not drawn.
 
 ## Claim a task
 

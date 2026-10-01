@@ -27,6 +27,30 @@ export interface Source {
   locator: string;
   checkedAt: string;
 }
+/** A published work in a field's citation network, collected from OpenAlex. Background reading,
+ * not a task-approved citation source. */
+export interface Paper {
+  id: string;
+  fieldId: FieldId;
+  title: string;
+  authors: string;
+  year: number | null;
+  venue: string | null;
+  doi: string | null;
+  url: string;
+  openAccess: boolean;
+  citedBy: number;
+  /** Hand-picked landmark, as opposed to found by following citations. */
+  seed: boolean;
+  /** IDs of papers in this collection that this paper cites. */
+  references: string[];
+}
+export interface Literature {
+  source: string;
+  collectedAt: string;
+  method: string;
+  papers: Paper[];
+}
 export interface Task {
   id: string;
   fieldId: FieldId;
@@ -94,6 +118,7 @@ export interface Event {
 export interface Snapshot {
   fields: Field[];
   sources: Source[];
+  papers: Paper[];
   tasks: Task[];
   contributions: Contribution[];
   events: Event[];
@@ -106,7 +131,14 @@ export interface ContextPacket {
   skills: { id: string; steps: string[] }[];
   sources: Pick<Source, 'id' | 'title' | 'url' | 'locator'>[];
   priorWork: Pick<Contribution, 'id' | 'title' | 'status' | 'revision'>[];
-  next: { claim: string; submit: string; expand: string; relatedWork: string; skills: string };
+  next: {
+    claim: string;
+    submit: string;
+    expand: string;
+    relatedWork: string;
+    skills: string;
+    literature: string;
+  };
   budget: {
     maxBytes: number;
     actualBytes: number;

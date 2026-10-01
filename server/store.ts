@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { fields, sources, tasks as seedTasks } from './catalog.ts';
+import { fields, papers, sources, tasks as seedTasks } from './catalog.ts';
 import type { Contribution, Event, Review, Role, Snapshot, Task } from '../shared/types.ts';
 
 export class ApiError extends Error {
@@ -503,6 +503,7 @@ export class Store {
     return {
       fields,
       sources,
+      papers,
       tasks: allTasks,
       contributions: this.contributions(undefined, 50),
       events: this.events(),

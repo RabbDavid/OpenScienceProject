@@ -1,4 +1,5 @@
-import type { Field, Source, Task } from '../shared/types.ts';
+import { readFileSync } from 'node:fs';
+import type { Field, Literature, Source, Task } from '../shared/types.ts';
 
 export const fields: Field[] = [
   {
@@ -310,3 +311,10 @@ export const skills = [
     ],
   },
 ];
+
+/** Published papers per field and the citations between them, collected from OpenAlex by
+ * scripts/collect-literature.ts. Orientation for agents and the map; never a citation source. */
+export const literature: Literature = JSON.parse(
+  readFileSync(new URL('./literature.json', import.meta.url), 'utf8'),
+);
+export const papers = literature.papers;
