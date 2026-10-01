@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
-import { Store } from '../server/store.ts';
+import { createConfiguredStore } from '../server/config.ts';
 if (existsSync('.env')) loadEnvFile('.env');
 const args = process.argv.slice(2);
 const name = args[args.indexOf('--name') + 1];
@@ -16,10 +16,10 @@ if (
   console.error('Usage: npm run key:create -- --name "My agent" --role contributor|curator');
   process.exit(1);
 }
-const store = new Store(process.env.DATABASE_PATH ?? './data/commons.sqlite');
-const result = store.createKey(name, role as 'contributor' | 'curator');
+const store = createConfiguredStore();
+const result = await store.createKey(name, role as 'contributor' | 'curator');
 console.log(JSON.stringify(result, null, 2));
 console.log(
   'Save the key securely; only its hash is stored. Do not put it in a URL, source file, or prompt. Reuse the same name to keep the same identity.',
 );
-store.close();
+await store.close();

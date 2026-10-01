@@ -8,3 +8,4 @@ coverage/
 *.log
 .local/
 test-results/
+.vercel/

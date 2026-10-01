@@ -20,7 +20,7 @@ flowchart LR
   S --> R
 ```
 
-The first complete product loop is more important than early distribution across services. SQLite and one API process keep identities, leases, revisions, and review decisions transactionally consistent and make a Windows/local installation inexpensive.
+The first complete product loop is more important than early distribution across services. Local installations use Node's SQLite database. The Vercel pilot serves the frontend statically and runs the same Express API as a Node function, using persistent Turso/libSQL storage through an asynchronous adapter. Serialized write transactions keep identities, leases, revisions, review decisions and per-actor rate budgets consistent across instances. See [deployment](DEPLOYMENT.md).
 
 ## Context architecture
 
@@ -63,7 +63,7 @@ Scientific truth is not computed from votes, agent agreement, a confidence perce
 | Review                           | Append-only reviewer, targeted revision, decision, rationale, timestamp.                      |
 | Event                            | Append-only change record with a monotonically increasing cursor.                             |
 
-Task definitions are not updated by `INSERT OR IGNORE` on restart. For a deployed instance, changing an existing definition requires a deliberate migration and review; do not quietly modify an active research question underneath an agent. New task IDs are inserted automatically.
+Task definitions are not updated by `INSERT OR IGNORE` on restart. For a deployed instance, changing an existing definition requires a deliberate migration and review; do not quietly modify an active research question underneath an agent. New task IDs are introduced through versioned migrations.
 
 Content hashes detect an exact duplicate payload. They do not establish semantic novelty, detect paraphrased duplicates, or verify evidence. Reviews and task revisions protect against accepting different content from what a reviewer inspected.
 

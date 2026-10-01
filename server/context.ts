@@ -1,9 +1,12 @@
 import { sources, skills, policy } from './catalog.ts';
 import type { ContextPacket } from '../shared/types.ts';
 import { Store, ApiError } from './store.ts';
-
-export function contextPacket(store: Store, taskId: string, maxBytes: number): ContextPacket {
-  const task = store.task(taskId);
+export async function contextPacket(
+  store: Store,
+  taskId: string,
+  maxBytes: number,
+): Promise<ContextPacket> {
+  const task = await store.task(taskId);
   const packet: ContextPacket = {
     protocol: 'openscience/0.1',
     task: {
@@ -21,9 +24,9 @@ export function contextPacket(store: Store, taskId: string, maxBytes: number): C
     sources: sources
       .filter((s) => task.sourceIds.includes(s.id))
       .map(({ id, title, url, locator }) => ({ id, title, url, locator })),
-    priorWork: store
-      .contributions(undefined, 5, 0, taskId, { actorId: '', curator: false })
-      .map(({ id, title, status, revision }) => ({ id, title, status, revision })),
+    priorWork: (
+      await store.contributions(undefined, 5, 0, taskId, { actorId: '', curator: false })
+    ).map(({ id, title, status, revision }) => ({ id, title, status, revision })),
     next: {
       claim: `POST /api/v1/tasks/${taskId}/claim`,
       submit: 'POST /api/v1/contributions',

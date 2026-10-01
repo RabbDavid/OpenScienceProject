@@ -6,10 +6,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../server/app.ts';
 import { Store } from '../server/store.ts';
-
-const cleanups: (() => void)[] = [];
-afterEach(() => {
-  for (const clean of cleanups.splice(0).reverse()) clean();
+const cleanups: (() => void | Promise<void>)[] = [];
+afterEach(async () => {
+  for (const clean of cleanups.splice(0).reverse()) await clean();
 });
 async function fixture(path = ':memory:') {
   const store = new Store(path);
@@ -17,15 +16,17 @@ async function fixture(path = ':memory:') {
   const server = await new Promise<Server>((resolve) => {
     const server = app.listen(0, '127.0.0.1', () => resolve(server));
   });
-  const address = server.address() as { port: number };
-  cleanups.push(() => {
+  const address = server.address() as {
+    port: number;
+  };
+  cleanups.push(async () => {
     server.closeAllConnections();
     server.close();
-    store.close();
+    await store.close();
   });
-  const key = store.createKey('Agent One', 'contributor');
-  const keyTwo = store.createKey('Agent Two', 'contributor');
-  const curator = store.createKey('Independent Curator', 'curator');
+  const key = await store.createKey('Agent One', 'contributor');
+  const keyTwo = await store.createKey('Agent Two', 'contributor');
+  const curator = await store.createKey('Independent Curator', 'curator');
   const call = async (path: string, body?: unknown, bearer?: string, method?: string) => {
     const response = await fetch(`http://127.0.0.1:${address.port}/api/v1${path}`, {
       method: method ?? (body === undefined ? 'GET' : 'POST'),
@@ -67,7 +68,7 @@ async function submit(
   overrides: Record<string, unknown> = {},
 ) {
   const taskId = String(overrides.taskId ?? 'battery-metadata-map');
-  const task = f.store.task(taskId);
+  const task = await f.store.task(taskId);
   const claim = await f.call(
     `/tasks/${taskId}/claim`,
     { expectedRevision: task.revision },
@@ -91,7 +92,6 @@ const review = (revision: number, decision = 'accept') => ({
     'Checked the metadata source, bounded claim, approved task scope, and stated limitations independently.',
   checks: { evidence: true, scope: true, limitations: true },
 });
-
 test('public discovery is compact and does not invent activity', async () => {
   const f = await fixture();
   const manifest = await f.call('/manifest');
@@ -133,7 +133,7 @@ test('literature is real, compact, and internally linked', async () => {
 });
 test('context bytes are measured exactly and policy survives budget trimming', async () => {
   const f = await fixture();
-  for (const task of f.store.tasks()) {
+  for (const task of await f.store.tasks()) {
     const result = await f.call(`/tasks/${task.id}/context?max_bytes=4096`);
     assert.equal(result.response.status, 200);
     assert.equal(Buffer.byteLength(JSON.stringify(result.data)), result.data.budget.actualBytes);
@@ -185,7 +185,7 @@ test('writes require keys and claim races cannot give two agents ownership', asy
   );
   assert.equal(attempt.response.status, 409);
   assert.equal(attempt.data.error.code, 'invalid_lease');
-  assert.equal(f.store.snapshot().contributions.length, 0);
+  assert.equal((await f.store.snapshot()).contributions.length, 0);
 });
 test('lease expiration reopens discovery and rejects expired work', async () => {
   const f = await fixture();
@@ -194,10 +194,10 @@ test('lease expiration reopens discovery and rejects expired work', async () => 
     { expectedRevision: 1 },
     f.key.key,
   );
-  f.store.db
+  await f.store.db
     .prepare('UPDATE tasks SET lease_expires_at=? WHERE id=?')
     .run('2000-01-01T00:00:00.000Z', 'battery-metadata-map');
-  assert.equal(f.store.task('battery-metadata-map').status, 'open');
+  assert.equal((await f.store.task('battery-metadata-map')).status, 'open');
   const expired = await f.call(
     '/contributions',
     {
@@ -219,15 +219,15 @@ test('submission is proposed; author and contributor keys cannot accept work', a
   const result = await submit(f);
   assert.equal(result.response.status, 201);
   assert.equal(result.data.status, 'proposed');
-  assert.equal(f.store.task('battery-metadata-map').status, 'open');
-  assert.equal(f.store.snapshot().stats.accepted, 0);
+  assert.equal((await f.store.task('battery-metadata-map')).status, 'open');
+  assert.equal((await f.store.snapshot()).stats.accepted, 0);
   const contributorReview = await f.call(
     `/contributions/${result.data.id}/reviews`,
     review(1),
     f.keyTwo.key,
   );
   assert.equal(contributorReview.response.status, 403);
-  const authorCurator = f.store.createKey('Agent One', 'curator');
+  const authorCurator = await f.store.createKey('Agent One', 'curator');
   assert.equal(authorCurator.actorId, f.key.actorId);
   const selfReview = await f.call(
     `/contributions/${result.data.id}/reviews`,
@@ -242,8 +242,8 @@ test('submission is proposed; author and contributor keys cannot accept work', a
   );
   assert.equal(accepted.response.status, 201);
   assert.equal(accepted.data.contribution.status, 'accepted');
-  assert.equal(f.store.task('battery-metadata-map').status, 'completed');
-  assert.equal(f.store.snapshot().stats.accepted, 1);
+  assert.equal((await f.store.task('battery-metadata-map')).status, 'completed');
+  assert.equal((await f.store.snapshot()).stats.accepted, 1);
   assert.equal(
     (await f.call(`/contributions/${result.data.id}/reviews`, review(1), f.curator.key)).response
       .status,
@@ -262,7 +262,7 @@ test('held work cannot enter reviewed knowledge without a resolved revision', as
     f.curator.key,
   );
   assert.equal(changes.data.contribution.status, 'held');
-  assert.equal(f.store.snapshot().stats.accepted, 0);
+  assert.equal((await f.store.snapshot()).stats.accepted, 0);
   assert.equal((await f.call(`/contributions/${result.data.id}`)).response.status, 403);
   assert.equal(
     (await f.call(`/contributions/${result.data.id}`, undefined, f.keyTwo.key)).response.status,
@@ -364,14 +364,14 @@ test('unknown and out-of-task citations fail without consuming the lease', async
     );
     assert.equal(bad.response.status, 422);
   }
-  assert.equal(f.store.task('battery-metadata-map').status, 'claimed');
+  assert.equal((await f.store.task('battery-metadata-map')).status, 'claimed');
   const spoof = await f.call(
     '/contributions',
     { ...contribution(), status: 'accepted', leaseToken: claim.data.leaseToken, taskRevision: 2 },
     f.key.key,
   );
   assert.equal(spoof.response.status, 422);
-  assert.equal(f.store.snapshot().contributions.length, 0);
+  assert.equal((await f.store.snapshot()).contributions.length, 0);
 });
 test('duplicate content is not recorded and credentials are hashed and revocable', async () => {
   const f = await fixture();
@@ -379,16 +379,16 @@ test('duplicate content is not recorded and credentials are hashed and revocable
   assert.equal(first.response.status, 201);
   const duplicate = await submit(f);
   assert.equal(duplicate.data.error.code, 'duplicate_content');
-  assert.equal(f.store.snapshot().contributions.length, 1);
-  const keys = f.store.db.prepare('SELECT * FROM api_keys').all();
+  assert.equal((await f.store.snapshot()).contributions.length, 1);
+  const keys = await f.store.db.prepare('SELECT * FROM api_keys').all();
   assert.ok(!JSON.stringify(keys).includes(f.key.key));
-  assert.equal(f.store.revokeKey(f.key.keyId), true);
+  assert.equal(await f.store.revokeKey(f.key.keyId), true);
   assert.equal((await f.call('/me', undefined, f.key.key)).response.status, 401);
 });
 test('acceptance cannot silently discard another active agent’s lease', async () => {
   const f = await fixture();
   const result = await submit(f);
-  const task = f.store.task('battery-metadata-map');
+  const task = await f.store.task('battery-metadata-map');
   const lease = await f.call(
     '/tasks/battery-metadata-map/claim',
     { expectedRevision: task.revision },
@@ -396,7 +396,7 @@ test('acceptance cannot silently discard another active agent’s lease', async 
   );
   const denied = await f.call(`/contributions/${result.data.id}/reviews`, review(1), f.curator.key);
   assert.equal(denied.data.error.code, 'active_work_lease');
-  assert.equal(f.store.task('battery-metadata-map').claimedBy, 'Agent Two');
+  assert.equal((await f.store.task('battery-metadata-map')).claimedBy, 'Agent Two');
   await f.call(
     '/tasks/battery-metadata-map/release',
     { leaseToken: lease.data.leaseToken },
@@ -410,7 +410,8 @@ test('acceptance cannot silently discard another active agent’s lease', async 
 });
 test('cursor pagination does not skip intermediate events', async () => {
   const f = await fixture();
-  for (let i = 0; i < 35; i++) f.store.event('test.event', 'Test actor', 'test', `Event ${i}`);
+  for (let i = 0; i < 35; i++)
+    await f.store.event('test.event', 'Test actor', 'test', `Event ${i}`);
   let cursor = 0;
   const seen: number[] = [];
   while (seen.length < 35) {
@@ -432,10 +433,10 @@ test('database survives reopening with its authors, content, and audit trail', a
   cleanups.unshift(() => rmSync(directory, { recursive: true, force: true }));
   const path = join(directory, 'test.sqlite');
   const store = new Store(path);
-  const key = store.createKey('Persistent agent', 'contributor');
-  const actor = store.authenticate(key.key);
-  const lease = store.claim('battery-metadata-map', actor, 1);
-  const work = store.submit(
+  const key = await store.createKey('Persistent agent', 'contributor');
+  const actor = await store.authenticate(key.key);
+  const lease = await store.claim('battery-metadata-map', actor, 1);
+  const work = await store.submit(
     actor,
     {
       ...contribution(),
@@ -447,14 +448,13 @@ test('database survives reopening with its authors, content, and audit trail', a
     lease.leaseToken,
     lease.task.revision,
   );
-  store.close();
+  await store.close();
   const reopened = new Store(path);
-  assert.equal(reopened.authenticate(key.key).id, actor.id);
-  assert.equal(reopened.contribution(work.id).title, work.title);
-  assert.equal(reopened.events().length, 2);
-  reopened.close();
+  assert.equal((await reopened.authenticate(key.key)).id, actor.id);
+  assert.equal((await reopened.contribution(work.id)).title, work.title);
+  assert.equal((await reopened.events()).length, 2);
+  await reopened.close();
 });
-
 test('lease renewals are owner-bound, limited, and preserve the submission revision', async () => {
   const f = await fixture();
   const claim = await f.call(
@@ -482,7 +482,6 @@ test('lease renewals are owner-bound, limited, and preserve the submission revis
   );
   assert.equal(saved.response.status, 201);
 });
-
 test('risk restrictions survive rejection and public pagination excludes restricted records', async () => {
   const f = await fixture();
   const low = await submit(f);
@@ -503,7 +502,6 @@ test('risk restrictions survive rejection and public pagination excludes restric
     false,
   );
 });
-
 test('write budgets and JSON limits fail explicitly', async () => {
   const f = await fixture();
   for (let i = 0; i < 30; i++) {

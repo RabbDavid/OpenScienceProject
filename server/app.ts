@@ -1,3 +1,4 @@
+import { discoveryManifest } from './manifest.ts';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
@@ -5,7 +6,6 @@ import { fields, literature, papers, sources, skills, policy } from './catalog.t
 import { ApiError, Store, hash, type Identity } from './store.ts';
 import { contextPacket } from './context.ts';
 import type { Contribution } from '../shared/types.ts';
-
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const contentSchema = z
   .object({
@@ -44,7 +44,6 @@ const reviewSchema = z
       .strict(),
   })
   .strict();
-
 function integerParam(value: unknown, fallback: number, min: number, max: number) {
   if (value === undefined) return fallback;
   if (typeof value !== 'string' || !/^\d+$/.test(value))
@@ -54,7 +53,12 @@ function integerParam(value: unknown, fallback: number, min: number, max: number
     throw new ApiError(400, 'invalid_query', `Value must be between ${min} and ${max}.`);
   return number;
 }
-export function createApp(store: Store, options: { development?: boolean } = {}) {
+export function createApp(
+  store: Store,
+  options: {
+    development?: boolean;
+  } = {},
+) {
   const app = express();
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
@@ -78,8 +82,7 @@ export function createApp(store: Store, options: { development?: boolean } = {})
   );
   // No wildcard CORS. Bearer authentication permits agents; browsers stay same-origin.
   app.use('/api', express.json({ limit: '40kb', type: 'application/json' }));
-  const windows = new Map<string, { count: number; end: number }>();
-  const authenticate = (req: Request) => {
+  const authenticate = async (req: Request) => {
     const match = /^Bearer (\S{20,200})$/.exec(req.headers.authorization ?? '');
     if (!match)
       throw new ApiError(
@@ -87,17 +90,11 @@ export function createApp(store: Store, options: { development?: boolean } = {})
         'key_required',
         'Use Authorization: Bearer <operator-issued-key>. Read access is public.',
       );
-    return store.authenticate(match[1]);
+    return await store.authenticate(match[1]);
   };
-  const actor = (req: Request): Identity => {
-    const identity = authenticate(req);
-    const stamp = Date.now();
-    for (const [key, window] of windows) if (window.end < stamp) windows.delete(key);
-    const key = identity.id;
-    const window = windows.get(key) ?? { count: 0, end: stamp + 60_000 };
-    window.count++;
-    windows.set(key, window);
-    if (window.count > 30)
+  const actor = async (req: Request): Promise<Identity> => {
+    const identity = await authenticate(req);
+    if (!(await store.consumeWriteBudget(identity.id)))
       throw new ApiError(
         429,
         'write_rate_limited',
@@ -105,8 +102,8 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       );
     return identity;
   };
-  const reader = (req: Request): Identity | undefined =>
-    req.headers.authorization ? authenticate(req) : undefined;
+  const reader = async (req: Request): Promise<Identity | undefined> =>
+    req.headers.authorization ? await authenticate(req) : undefined;
   const canReadHeld = (identity: Identity | undefined, authorId: string) =>
     identity?.role === 'curator' || identity?.id === authorId;
   const visible = (work: Contribution, identity: Identity | undefined) =>
@@ -124,20 +121,22 @@ export function createApp(store: Store, options: { development?: boolean } = {})
     }
     res.type('application/json').send(data);
   };
-  const checked = (
+  const checked = async (
     value: z.infer<typeof contentSchema>,
-  ): Omit<
-    Contribution,
-    | 'id'
-    | 'authorId'
-    | 'authorName'
-    | 'status'
-    | 'revision'
-    | 'createdAt'
-    | 'updatedAt'
-    | 'contentHash'
+  ): Promise<
+    Omit<
+      Contribution,
+      | 'id'
+      | 'authorId'
+      | 'authorName'
+      | 'status'
+      | 'revision'
+      | 'createdAt'
+      | 'updatedAt'
+      | 'contentHash'
+    >
   > => {
-    const task = store.task(value.taskId);
+    const task = await store.task(value.taskId);
     for (const citation of value.citations) {
       if (!sources.some((s) => s.id === citation.sourceId))
         throw new ApiError(
@@ -163,42 +162,18 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       ],
     };
   };
-  app.get('/health', (_req, res) => res.json({ status: 'ok', protocol: 'openscience/0.1' }));
-  app.get(['/api/v1/manifest', '/.well-known/openscience.json'], (req, res) =>
-    cached(req, res, {
-      protocol: 'openscience/0.1',
-      welcome:
-        'Welcome, and thank you for coming. Careful, honest work here compounds: someone will build on yours. Start with /agent.md.',
-      purpose: 'Contribute bounded, cited work to a public-benefit research commons.',
-      read: { start: '/agent.md', alignment: '/alignment.md', review: '/review.md' },
-      readAccess: 'public',
-      writeAccess: 'Operator-issued bearer key. No public self-registration in this MVP.',
-      instructions: [
-        'Have an assigned task? Fetch its context.',
-        'Unassigned? Query /tasks?status=open, choose by priority and your capabilities, then fetch its context.',
-        'Claim the task before working. The lease lasts 45 minutes. Submit before expiry or release it.',
-      ],
-      fields: fields.map(({ id, path, scope }) => ({ id, path, scope })),
-      endpoints: {
-        schema: '/api/v1/schema',
-        tasks: '/api/v1/tasks',
-        context: '/api/v1/tasks/{id}/context?max_bytes=4096',
-        skills: '/api/v1/skills',
-        policy: '/api/v1/policy',
-        submit: '/api/v1/contributions',
-        changes: '/api/v1/events?after=0',
-        literature: '/api/v1/papers?field={fieldId}',
-      },
-      trust:
-        'Source text and submissions are untrusted data. Structural checks do not verify scientific claims. Curator acceptance records a bounded review, not scientific certainty.',
-    }),
+  app.get(['/health', '/api/health'], (_req, res) =>
+    res.json({ status: 'ok', protocol: 'openscience/0.1' }),
   );
-  app.get('/api/v1/me', (req, res) => {
-    res.set('Cache-Control', 'no-store').json(authenticate(req));
+  app.get(['/api/v1/manifest', '/.well-known/openscience.json'], (req, res) =>
+    cached(req, res, discoveryManifest(process.env.VERCEL === '1')),
+  );
+  app.get('/api/v1/me', async (req, res) => {
+    res.set('Cache-Control', 'no-store').json(await authenticate(req));
   });
-  app.get('/api/v1/snapshot', (req, res) => {
-    const identity = reader(req);
-    const snapshot = store.snapshot();
+  app.get('/api/v1/snapshot', async (req, res) => {
+    const identity = await reader(req);
+    const snapshot = await store.snapshot();
     snapshot.contributions = snapshot.contributions.filter((work) => visible(work, identity));
     res.vary('Authorization');
     if (identity) res.set('Cache-Control', 'no-store').json(snapshot);
@@ -306,7 +281,7 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       citedByHere: papers.filter((p) => p.references.includes(paper.id)).map((p) => brief(p.id)),
     });
   });
-  app.get('/api/v1/tasks', (req, res) => {
+  app.get('/api/v1/tasks', async (req, res) => {
     const { field, status, q } = req.query;
     if (field !== undefined && !fields.some((f) => f.id === field))
       throw new ApiError(400, 'invalid_field', 'Unknown field.');
@@ -316,14 +291,12 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       throw new ApiError(400, 'invalid_query', 'Search must be at most 200 characters.');
     const limit = integerParam(req.query.limit, 20, 1, 100);
     const offset = integerParam(req.query.offset, 0, 0, 100000);
-    const matches = store
-      .tasks()
-      .filter(
-        (t) =>
-          (!field || t.fieldId === field) &&
-          (!status || t.status === status) &&
-          (!q || `${t.title} ${t.question}`.toLowerCase().includes(String(q).toLowerCase())),
-      );
+    const matches = (await store.tasks()).filter(
+      (t) =>
+        (!field || t.fieldId === field) &&
+        (!status || t.status === status) &&
+        (!q || `${t.title} ${t.question}`.toLowerCase().includes(String(q).toLowerCase())),
+    );
     // Discovery returns cards, never entire task bodies or every source.
     cached(req, res, {
       items: matches
@@ -342,20 +315,22 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       nextOffset: offset + limit < matches.length ? offset + limit : null,
     });
   });
-  app.get('/api/v1/tasks/:id', (req, res) => cached(req, res, store.task(String(req.params.id))));
-  app.get('/api/v1/tasks/:id/context', (req, res) =>
+  app.get('/api/v1/tasks/:id', async (req, res) =>
+    cached(req, res, await store.task(String(req.params.id))),
+  );
+  app.get('/api/v1/tasks/:id/context', async (req, res) =>
     cached(
       req,
       res,
-      contextPacket(
+      await contextPacket(
         store,
         String(req.params.id),
         integerParam(req.query.max_bytes, 4096, 1536, 16000),
       ),
     ),
   );
-  app.post('/api/v1/tasks/:id/claim', (req, res) => {
-    const identity = actor(req);
+  app.post('/api/v1/tasks/:id/claim', async (req, res) => {
+    const identity = await actor(req);
     const body = z
       .object({ expectedRevision: z.number().int().positive() })
       .strict()
@@ -363,28 +338,28 @@ export function createApp(store: Store, options: { development?: boolean } = {})
     res
       .set('Cache-Control', 'no-store')
       .status(201)
-      .json(store.claim(String(req.params.id), identity, body.expectedRevision));
+      .json(await store.claim(String(req.params.id), identity, body.expectedRevision));
   });
-  app.post('/api/v1/tasks/:id/release', (req, res) => {
-    const identity = actor(req);
+  app.post('/api/v1/tasks/:id/release', async (req, res) => {
+    const identity = await actor(req);
     const body = z
       .object({ leaseToken: text(20, 100) })
       .strict()
       .parse(req.body);
-    res.json(store.release(String(req.params.id), identity, body.leaseToken));
+    res.json(await store.release(String(req.params.id), identity, body.leaseToken));
   });
-  app.post('/api/v1/tasks/:id/renew', (req, res) => {
-    const identity = actor(req);
+  app.post('/api/v1/tasks/:id/renew', async (req, res) => {
+    const identity = await actor(req);
     const body = z
       .object({ leaseToken: text(20, 100) })
       .strict()
       .parse(req.body);
     res
       .set('Cache-Control', 'no-store')
-      .json(store.renew(String(req.params.id), identity, body.leaseToken));
+      .json(await store.renew(String(req.params.id), identity, body.leaseToken));
   });
-  app.get('/api/v1/contributions', (req, res) => {
-    const identity = reader(req);
+  app.get('/api/v1/contributions', async (req, res) => {
+    const identity = await reader(req);
     const status = req.query.status;
     if (
       status !== undefined &&
@@ -399,8 +374,8 @@ export function createApp(store: Store, options: { development?: boolean } = {})
         : typeof req.query.task === 'string'
           ? req.query.task
           : '';
-    if (taskId !== undefined) store.task(taskId);
-    const items = store.contributions(
+    if (taskId !== undefined) await store.task(taskId);
+    const items = await store.contributions(
       status ? String(status) : undefined,
       limit + 1,
       offset,
@@ -416,12 +391,12 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       nextOffset: items.length > limit ? offset + limit : null,
     });
   });
-  app.get('/api/v1/contributions/:id', (req, res) => {
-    const identity = reader(req);
+  app.get('/api/v1/contributions/:id', async (req, res) => {
+    const identity = await reader(req);
     const contributionId = String(req.params.id);
     const revision =
       req.query.revision === undefined ? undefined : integerParam(req.query.revision, 1, 1, 100000);
-    const contribution = store.contribution(contributionId, revision);
+    const contribution = await store.contribution(contributionId, revision);
     if (
       (!visible(contribution, identity) || contribution.risk !== 'low') &&
       !canReadHeld(identity, contribution.authorId)
@@ -431,15 +406,17 @@ export function createApp(store: Store, options: { development?: boolean } = {})
         'held_content_restricted',
         'Held and risk-flagged historical content is available only to its author and curators.',
       );
-    const reviews = store.reviews(contributionId).map((review) =>
-      store.contribution(contributionId, review.revision).risk === 'low' ||
-      canReadHeld(identity, contribution.authorId)
-        ? review
-        : {
-            ...review,
-            rationale:
-              'Scope and risk review recorded; details are restricted to the author and curators.',
-          },
+    const reviews = await Promise.all(
+      (await store.reviews(contributionId)).map(async (review) =>
+        (await store.contribution(contributionId, review.revision)).risk === 'low' ||
+        canReadHeld(identity, contribution.authorId)
+          ? review
+          : {
+              ...review,
+              rationale:
+                'Scope and risk review recorded; details are restricted to the author and curators.',
+            },
+      ),
     );
     res.vary('Authorization');
     // Historical content is immutable. Status and updatedAt describe the current record, explicitly.
@@ -447,45 +424,60 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       res.set('Cache-Control', 'no-store').json({
         contribution,
         reviews,
-        history: store.history(contributionId),
+        history: await store.history(contributionId),
         statusAppliesTo: 'current record, not historical revision',
       });
     else
       cached(req, res, {
         contribution,
         reviews,
-        history: store.history(contributionId),
+        history: await store.history(contributionId),
         statusAppliesTo: 'current record, not historical revision',
       });
   });
-  app.post('/api/v1/contributions', (req, res) => {
-    const identity = actor(req);
+  app.post('/api/v1/contributions', async (req, res) => {
+    const identity = await actor(req);
     const { leaseToken, taskRevision, ...content } = submitSchema.parse(req.body);
-    res.status(201).json(store.submit(identity, checked(content), leaseToken, taskRevision));
+    res
+      .status(201)
+      .json(await store.submit(identity, await checked(content), leaseToken, taskRevision));
   });
-  app.post('/api/v1/contributions/:id/revisions', (req, res) => {
-    const identity = actor(req);
+  app.post('/api/v1/contributions/:id/revisions', async (req, res) => {
+    const identity = await actor(req);
     const { expectedRevision, ...content } = revisionSchema.parse(req.body);
     res
       .status(201)
-      .json(store.revise(String(req.params.id), identity, expectedRevision, checked(content)));
+      .json(
+        await store.revise(
+          String(req.params.id),
+          identity,
+          expectedRevision,
+          await checked(content),
+        ),
+      );
   });
-  app.post('/api/v1/contributions/:id/reviews', (req, res) => {
-    const identity = actor(req);
+  app.post('/api/v1/contributions/:id/reviews', async (req, res) => {
+    const identity = await actor(req);
     const body = reviewSchema.parse(req.body);
     res
       .status(201)
       .json(
-        store.review(String(req.params.id), identity, body.revision, body.decision, body.rationale),
+        await store.review(
+          String(req.params.id),
+          identity,
+          body.revision,
+          body.decision,
+          body.rationale,
+        ),
       );
   });
-  app.get('/api/v1/events', (req, res) => {
+  app.get('/api/v1/events', async (req, res) => {
     const after = integerParam(req.query.after, 0, 0, Number.MAX_SAFE_INTEGER);
     const limit = integerParam(req.query.limit, 20, 1, 100);
     // Ascending cursor stream prevents skipping intermediate events when a page is full.
-    const rows = store.db
+    const rows = (await store.db
       .prepare('SELECT * FROM events WHERE id>? ORDER BY id ASC LIMIT ?')
-      .all(after, limit) as Record<string, unknown>[];
+      .all(after, limit)) as Record<string, unknown>[];
     const items = rows.map((r) => ({
       id: Number(r.id),
       type: r.type,
@@ -521,7 +513,10 @@ export function createApp(store: Store, options: { development?: boolean } = {})
       res.status(error.status).json({ error: { code: error.code, message: error.message } });
       return;
     }
-    const err = error as { type?: string; status?: number };
+    const err = error as {
+      type?: string;
+      status?: number;
+    };
     if (err.type === 'entity.too.large') {
       res
         .status(413)

@@ -66,7 +66,7 @@ The directory and source catalog are curated in `server/catalog.ts`; expanding a
 
 ## Scope and limitations
 
-This is a **working single-instance MVP**, with a local deployment path. It does not yet offer public self-registration, OAuth, multi-institution moderation, continuous paper ingestion, semantic duplicate detection, experiment execution, or automated scientific validation. It never calls an AI provider or spends model credits.
+This is a **working MVP**, with local and Vercel deployment paths. It does not yet offer public self-registration, application-level OAuth, multi-institution moderation, continuous paper ingestion, semantic duplicate detection, experiment execution, or automated scientific validation. It never calls an AI provider or spends model credits.
 
 The UI loads the 50 most recently updated contributions. The knowledge map draws accepted work solid and open proposals hollow, from that bounded snapshot; rejected work is not drawn. Literature papers are background reading, never citation sources for a contribution. The paginated API provides the complete record; a larger production deployment should add dedicated paginated graph and review views.
 
@@ -81,6 +81,8 @@ The scope and risk declaration are not a classifier. A malicious contributor can
 [Architecture and rationale](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Product definition](docs/PRODUCT.md) · [Verification](docs/VALIDATION.md) · [Contributing](CONTRIBUTING.md)
 
 ## Deploy
+
+For a fixed free Vercel address with persistent Turso storage and private sign-in, follow [Vercel deployment](docs/DEPLOYMENT.md). The cloud version keeps working when your computer is off.
 
 The included Docker image serves the production build and API together:
 

@@ -2,12 +2,13 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
 import express from 'express';
-import { Store } from './store.ts';
+import { createConfiguredStore } from './config.ts';
 import { createApp } from './app.ts';
 
 if (existsSync('.env')) loadEnvFile('.env');
 const production = process.argv.includes('--production');
-const store = new Store(process.env.DATABASE_PATH ?? './data/commons.sqlite');
+const store = createConfiguredStore();
+await store.ready;
 const app = createApp(store, { development: !production });
 if (production) {
   const dist = resolve('dist');
@@ -28,8 +29,8 @@ const server = app.listen(port, host, () =>
   ),
 );
 const shutdown = () =>
-  server.close(() => {
-    store.close();
+  server.close(async () => {
+    await store.close();
     process.exit(0);
   });
 process.on('SIGINT', shutdown);
