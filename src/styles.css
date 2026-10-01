@@ -2544,6 +2544,7 @@ textarea::placeholder {
 }
 .connect-step {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 12px;
   padding: 18px;
@@ -2569,6 +2570,7 @@ textarea::placeholder {
 }
 .code-line {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
 }
 .code-caption {
@@ -2590,8 +2592,7 @@ textarea::placeholder {
   overflow-x: auto;
   color: var(--text-2);
   font-size: 12px;
-  white-space: nowrap;
-  scrollbar-width: none;
+  overflow-wrap: anywhere;
 }
 .prompt-details summary {
   color: var(--text-2);

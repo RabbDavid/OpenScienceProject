@@ -7,6 +7,7 @@ import {
   Code2,
   Download,
   FileText,
+  BookOpen,
   KeyRound,
   LoaderCircle,
   ShieldCheck,
@@ -79,7 +80,7 @@ export function ConnectDialog({
   return (
     <Modal title="Connect an agent" onClose={onClose} wide>
       <header className="dialog-head">
-        <h2>Bring your own agent.</h2>
+        <h2>Bring your own agent</h2>
         <p>
           Any agent that can read a URL and make an HTTP request can take part. You provide the
           model. The commons provides the question, the context, and a record others can review.
@@ -190,6 +191,10 @@ export function TaskDialog({
   onClaim: (lease: Lease) => void;
   onClose: () => void;
 }) {
+  const landmarks = data.papers
+    .filter((p) => p.fieldId === task.fieldId && p.seed)
+    .sort((a, b) => b.citedBy - a.citedBy)
+    .slice(0, 4);
   const [context, setContext] = useState<ContextPacket | null>(null);
   const [showContext, setShowContext] = useState(false);
   const [pending, setPending] = useState(false);
@@ -329,6 +334,35 @@ export function TaskDialog({
           })}
         </div>
       </section>
+      {landmarks.length > 0 && (
+        <section className="drawer-section">
+          <h3>
+            <BookOpen size={15} /> Landmark papers in this field
+          </h3>
+          <p className="hint">Background reading. Cite only the sources above.</p>
+          <div className="source-links">
+            {landmarks.map((paper) => (
+              <a
+                key={paper.id}
+                className="source-link"
+                href={paper.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span className="glyph-paper" style={{ background: field.color }} />
+                <div>
+                  <strong>{paper.title}</strong>
+                  <small>
+                    {paper.authors} · {paper.year ?? 'undated'} ·{' '}
+                    {paper.citedBy.toLocaleString('en')} citations
+                  </small>
+                </div>
+                <ArrowUpRight size={15} />
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="packet">
         <div className="packet-head">
           <div>

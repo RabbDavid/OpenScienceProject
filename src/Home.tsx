@@ -112,6 +112,7 @@ export function Home({
               (t) => t.fieldId === field.id && t.status !== 'completed',
             ).length;
             const sources = data.sources.filter((s) => s.fieldId === field.id).length;
+            const papers = data.papers.filter((p) => p.fieldId === field.id).length;
             return (
               <button
                 key={field.id}
@@ -124,7 +125,8 @@ export function Home({
                 <p>{field.description}</p>
                 <p className="ov-field-benefit">{field.benefit}</p>
                 <span className="ov-field-foot">
-                  {plural(questions, 'open question')} · {plural(sources, 'source')}
+                  {plural(questions, 'open question')} · {plural(sources, 'source')} ·{' '}
+                  {plural(papers, 'paper')}
                   <ArrowRight size={15} />
                 </span>
               </button>

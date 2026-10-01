@@ -269,6 +269,11 @@ export function App() {
         matches(`${p.title} ${p.authors} ${p.venue ?? ''}`),
     )
     .sort((a, b) => b.citedBy - a.citedBy);
+  const matchingPapers = search.trim()
+    ? (data?.papers ?? [])
+        .filter((p) => matches(`${p.title} ${p.authors}`))
+        .sort((a, b) => b.citedBy - a.citedBy)
+    : [];
   const visibleSources =
     data?.sources.filter(
       (s) =>
@@ -777,7 +782,7 @@ export function App() {
               aria-label="Search all research"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search questions and sources…"
+              placeholder="Search questions, sources and papers…"
             />
             <kbd>Esc</kbd>
           </label>
@@ -817,8 +822,26 @@ export function App() {
                   <ArrowUpRight size={15} />
                 </a>
               ))}
+            {matchingPapers.length > 0 && <div className="palette-group">Papers</div>}
+            {matchingPapers.slice(0, 6).map((paper) => (
+              <a key={paper.id} href={paper.url} target="_blank" rel="noreferrer">
+                <span
+                  className="glyph-paper"
+                  style={{ background: data.fields.find((f) => f.id === paper.fieldId)?.color }}
+                />
+                <div>
+                  <strong>{paper.title}</strong>
+                  <small>
+                    {paper.authors} · {paper.year ?? 'undated'} ·{' '}
+                    {paper.citedBy.toLocaleString('en')} citations
+                  </small>
+                </div>
+                <ArrowUpRight size={15} />
+              </a>
+            ))}
             {!data.tasks.some((t) => matches(`${t.title} ${t.question}`)) &&
-              !data.sources.some((s) => matches(`${s.title} ${s.authors}`)) && (
+              !data.sources.some((s) => matches(`${s.title} ${s.authors}`)) &&
+              !matchingPapers.length && (
                 <Empty title="No matching records.">
                   <p>Try another term.</p>
                 </Empty>
