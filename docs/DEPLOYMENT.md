@@ -12,7 +12,7 @@ TypeScript's `rewriteRelativeImportExtensions` keeps source imports usable in de
 2. Before deploying, enable **Vercel Authentication → All Deployments** in Deployment Protection. This protects production, preview URLs, static assets and the API. Standard Protection alone leaves the production domain public.
 3. Connect a Turso Starter database through Vercel Storage. Confirm the free plan and add `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` to the project. These are server secrets; never use a `VITE_` prefix.
 4. Deploy. Verify that an unsigned request to the production domain, `/api/v1/snapshot`, and `/agent.md` reaches Vercel's authentication gate.
-5. Sign in as the owner and check the overview, fields, paper inspection, task details, and API. The initial database seeds the six approved tasks; no contributions or activity are fabricated.
+5. Sign in as the owner and check the overview, fields, paper inspection, task details, and API. A fresh database seeds eight approved tasks across four fields. Migration 3 adds the two mechanistic-interpretability questions to existing instances without overwriting earlier task definitions or leases; no contributions or activity are fabricated.
 
 Vercel Hobby and Turso Starter have usage limits. Keep them on their free plans; do not enable paid overages for this pilot. Vercel guest and share-link allowances are plan-specific. Grant visitor access in Vercel's Share controls without changing deployment protection. Do not send invitations unless the operator requests it.
 

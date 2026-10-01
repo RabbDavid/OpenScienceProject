@@ -1,6 +1,6 @@
 import { Database } from './database.ts';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { fields, papers, sources, tasks as seedTasks } from './catalog.ts';
+import { fields, papers, sources, tasks as seedTasks, migration3TaskIds } from './catalog.ts';
 import type { Contribution, Event, Review, Role, Snapshot, Task } from '../shared/types.ts';
 export class ApiError extends Error {
   constructor(
@@ -32,11 +32,13 @@ export class Store {
       'CREATE TABLE IF NOT EXISTS schema_metadata (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)',
     );
     const version = await this.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get();
-    if (Number(version?.version) >= 2) return;
+    if (Number(version?.version) >= 3) return;
     await this.db.transaction(async () => {
       const current = await this.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get();
-      if (Number(current?.version) >= 2) return;
-      await this.db.exec(`
+      const currentVersion = Number(current?.version ?? 0);
+      if (currentVersion >= 3) return;
+      if (currentVersion < 2) {
+        await this.db.exec(`
       CREATE TABLE IF NOT EXISTS actors (id TEXT PRIMARY KEY, name TEXT NOT NULL, normalized_name TEXT UNIQUE NOT NULL);
       CREATE TABLE IF NOT EXISTS write_budgets (actor_id TEXT PRIMARY KEY REFERENCES actors(id), count INTEGER NOT NULL, reset_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS api_keys (id TEXT PRIMARY KEY, actor_id TEXT NOT NULL REFERENCES actors(id), key_hash TEXT UNIQUE NOT NULL, role TEXT NOT NULL CHECK(role IN ('contributor','curator')), revoked INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
@@ -48,21 +50,32 @@ export class Store {
       CREATE INDEX IF NOT EXISTS revisions_hash ON revisions(content_hash);
       CREATE INDEX IF NOT EXISTS contribution_status ON contributions(status,updated_at);
     `);
-      if (
-        !(
-          (await this.db.prepare('PRAGMA table_info(tasks)').all()) as {
-            name: string;
-          }[]
-        ).some((column) => column.name === 'lease_renewals')
-      )
-        await this.db.exec(
-          'ALTER TABLE tasks ADD COLUMN lease_renewals INTEGER NOT NULL DEFAULT 0',
-        );
-      const insert = this.db.prepare('INSERT OR IGNORE INTO tasks (id,payload) VALUES (?,?)');
-      for (const task of seedTasks) await insert.run(task.id, JSON.stringify(task));
+        if (
+          !(
+            (await this.db.prepare('PRAGMA table_info(tasks)').all()) as {
+              name: string;
+            }[]
+          ).some((column) => column.name === 'lease_renewals')
+        )
+          await this.db.exec(
+            'ALTER TABLE tasks ADD COLUMN lease_renewals INTEGER NOT NULL DEFAULT 0',
+          );
+        const insert = this.db.prepare('INSERT OR IGNORE INTO tasks (id,payload) VALUES (?,?)');
+        for (const task of seedTasks.filter((task) => !migration3TaskIds.includes(task.id)))
+          await insert.run(task.id, JSON.stringify(task));
+      }
+      // Add only the two newly opened questions. Existing definitions, leases and work stay intact.
+      if (currentVersion < 3) {
+        const insert = this.db.prepare('INSERT OR IGNORE INTO tasks (id,payload) VALUES (?,?)');
+        for (const taskId of migration3TaskIds) {
+          const task = seedTasks.find((task) => task.id === taskId);
+          if (!task) throw new Error(`Missing migration 3 task: ${taskId}`);
+          await insert.run(task.id, JSON.stringify(task));
+        }
+      }
       await this.db
         .prepare(
-          'INSERT INTO schema_metadata(id,version) VALUES (1,2) ON CONFLICT(id) DO UPDATE SET version=excluded.version',
+          'INSERT INTO schema_metadata(id,version) VALUES (1,3) ON CONFLICT(id) DO UPDATE SET version=excluded.version',
         )
         .run();
     });

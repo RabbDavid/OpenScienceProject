@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { X, Check, Copy, BatteryMedium, Sun, FlaskConical, ArrowUpRight } from 'lucide-react';
+import {
+  X,
+  Check,
+  Copy,
+  BatteryMedium,
+  Sun,
+  FlaskConical,
+  BrainCircuit,
+  ArrowUpRight,
+} from 'lucide-react';
 import type { Contribution, Field, Source, Task } from '../shared/types.ts';
 import { prettyKind, prettyStatus } from './api.ts';
 
@@ -8,6 +17,8 @@ export const fieldIcon = (field: Field, size = 18) =>
     <BatteryMedium size={size} />
   ) : field.icon === 'sun' ? (
     <Sun size={size} />
+  ) : field.icon === 'brain' ? (
+    <BrainCircuit size={size} />
   ) : (
     <FlaskConical size={size} />
   );

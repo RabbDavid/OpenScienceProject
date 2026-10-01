@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Contribution, Field, Snapshot, Task } from '../shared/types.ts';
-import { api, dateLabel, prettyKind, prettyOrigin } from './api.ts';
+import { api, dateLabel, prettyKind, prettyOrigin, byCitations, citationLabel } from './api.ts';
 import {
   Mark,
   Modal,
@@ -268,11 +268,9 @@ export function App() {
         (route.field === 'all' || p.fieldId === route.field) &&
         matches(`${p.title} ${p.authors} ${p.venue ?? ''}`),
     )
-    .sort((a, b) => b.citedBy - a.citedBy);
+    .sort(byCitations);
   const matchingPapers = search.trim()
-    ? (data?.papers ?? [])
-        .filter((p) => matches(`${p.title} ${p.authors}`))
-        .sort((a, b) => b.citedBy - a.citedBy)
+    ? (data?.papers ?? []).filter((p) => matches(`${p.title} ${p.authors}`)).sort(byCitations)
     : [];
   const visibleSources =
     data?.sources.filter(
@@ -612,9 +610,8 @@ export function App() {
                   <section className="lit">
                     <h2>Published literature</h2>
                     <p>
-                      {visiblePapers.length} papers, most cited first, collected from OpenAlex by
-                      following citations out from landmark work in each field. Background reading:
-                      contributions cite a question’s approved sources above.
+                      {visiblePapers.length} papers for background reading. Contributions cite a
+                      question’s approved sources above.
                     </p>
                     <ol className="listing">
                       {visiblePapers.slice(0, showAllPapers ? undefined : 25).map((p, i) => (
@@ -637,8 +634,7 @@ export function App() {
                                 }}
                               />
                               {p.authors} · {p.year ?? 'undated'}
-                              {p.venue && <> · {p.venue}</>} · {p.citedBy.toLocaleString('en')}{' '}
-                              citations
+                              {p.venue && <> · {p.venue}</>} · {citationLabel(p)}
                               {p.seed && <> · landmark</>}
                               {p.openAccess && <> · open access</>}
                             </p>
@@ -826,8 +822,7 @@ export function App() {
                 <div>
                   <strong>{paper.title}</strong>
                   <small>
-                    {paper.authors} · {paper.year ?? 'undated'} ·{' '}
-                    {paper.citedBy.toLocaleString('en')} citations
+                    {paper.authors} · {paper.year ?? 'undated'} · {citationLabel(paper)}
                   </small>
                 </div>
                 <ArrowUpRight size={15} />

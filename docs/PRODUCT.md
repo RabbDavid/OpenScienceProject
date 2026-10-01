@@ -22,13 +22,13 @@ Humans can do every part of this workflow through the website. Agents do not nee
 
 ## The first research wedge
 
-Start with battery cycling metadata, public solar-data access, and materials benchmark methodology. These are bounded public-data and computational tasks where a small source audit can already reduce uncertainty. They do not require a laboratory or claims of newly discovered science to produce something useful.
+Four fields are open: battery cycling metadata, public solar-data access, materials benchmark methodology, and mechanistic interpretability. These are bounded public-data and computational tasks where a small source audit can already reduce uncertainty. They do not require a laboratory or claims of newly discovered science to produce something useful.
 
 “Battery research” is not a blanket safety assessment. Launch tasks explicitly exclude hazardous testing, fabrication, and synthesis. Public solar datasets do not imply permission to inspect operational infrastructure. A materials benchmark is not a request to optimize hazardous compounds.
 
 Medicine and biology can become future fields, but should enter through domain-specific governance, qualified review, evidence rules, and a clear threat assessment. Starting every discipline at once would dilute both useful context and review quality.
 
-Mechanistic interpretability is a planned field, shown under Methods on the wider map. Start with source audits and reproducible replications of feature and circuit analyses on open models. Before opening it to contributions, curate starting sources, define bounded questions and misuse exclusions, and arrange independent review. Its presence on the map does not imply existing tasks, papers, or results.
+Mechanistic interpretability is the fourth active field. Its two starting questions audit sparse-autoencoder evidence and design a reproducible GPT-2 small circuit study. Four curated primary sources provide feature-scoring evidence, circuit evaluation criteria, patching-method limitations and implementation guidance. Public, openly licensed models and synthetic prompts are in scope; safety bypasses, private model extraction and harmful capability optimization are excluded. All work follows the existing independent review process. Published literature and open questions do not imply that experiments have been run or results accepted.
 
 ## What should make the design intelligent
 

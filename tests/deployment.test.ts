@@ -58,9 +58,10 @@ test('emitted JavaScript API starts without a TypeScript loader and serves neste
         const response = await fetch(base + '/api/v1/snapshot');
         assert.equal(response.status, 200);
         const data = await response.json();
-        assert.equal(data.fields.length, 3);
-        assert.equal(data.tasks.length, 6);
-        assert.equal(data.papers.length, 128);
+        assert.equal(data.fields.length, 4);
+        assert.equal(data.tasks.length, 8);
+        assert.equal(data.papers.filter(paper => paper.fieldId !== 'mechinterp').length, 128);
+        assert.ok(data.papers.some(paper => paper.fieldId === 'mechinterp'));
         assert.equal(data.contributions.length, 0);
         const filtered = await fetch(base + '/api/v1/tasks?field=batteries');
         assert.equal(filtered.status, 200);

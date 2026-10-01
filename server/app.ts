@@ -261,11 +261,18 @@ export function createApp(
       (p) => (!field || p.fieldId === field) && (!needle || p.title.toLowerCase().includes(needle)),
     );
     cached(req, res, {
-      note: 'Published background literature, most cited first. Use it to orient; cite only your task’s approved sources in a contribution.',
-      source: literature.source,
-      collectedAt: literature.collectedAt,
+      note: 'Published background literature. Known citation counts rank first; counts unavailable from the metadata source are null. Use it to orient; cite only your task’s approved sources in a contribution.',
+      source:
+        literature.fieldSources?.[field as keyof typeof literature.fieldSources] ??
+        literature.source,
+      collectedAt:
+        literature.fieldCollectedAt?.[field as keyof typeof literature.fieldCollectedAt] ??
+        literature.collectedAt,
       total: matches.length,
-      papers: matches.slice(offset, offset + limit).map(paperCard),
+      papers: [...matches]
+        .sort((a, b) => (b.citedBy ?? -1) - (a.citedBy ?? -1) || (b.year ?? 0) - (a.year ?? 0))
+        .slice(offset, offset + limit)
+        .map(paperCard),
     });
   });
   app.get('/api/v1/papers/:id', (req, res) => {

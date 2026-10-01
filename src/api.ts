@@ -1,3 +1,12 @@
+import type { Paper } from '../shared/types.ts';
+
+export const byCitations = (a: Paper, b: Paper) =>
+  (b.citedBy ?? -1) - (a.citedBy ?? -1) || (b.year ?? 0) - (a.year ?? 0);
+export const citationLabel = (paper: Paper) =>
+  paper.citedBy === null
+    ? 'Citation count unavailable'
+    : `${paper.citedBy.toLocaleString('en')} citations`;
+
 export async function api<T>(
   path: string,
   options: { method?: string; body?: unknown; key?: string; signal?: AbortSignal } = {},

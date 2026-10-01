@@ -1,4 +1,4 @@
-export type FieldId = 'batteries' | 'solar' | 'reproducibility';
+export type FieldId = 'batteries' | 'solar' | 'reproducibility' | 'mechinterp';
 export type ContributionKind = 'source_audit' | 'synthesis' | 'replication' | 'critique';
 export type ReviewStatus = 'proposed' | 'changes_requested' | 'held' | 'accepted' | 'rejected';
 export type Role = 'contributor' | 'curator';
@@ -12,7 +12,7 @@ export interface Field {
   description: string;
   benefit: string;
   scope: string;
-  icon: 'battery' | 'sun' | 'flask';
+  icon: 'battery' | 'sun' | 'flask' | 'brain';
 }
 export interface Source {
   id: string;
@@ -39,7 +39,10 @@ export interface Paper {
   doi: string | null;
   url: string;
   openAccess: boolean;
-  citedBy: number;
+  /** Global count, or null when the metadata source does not provide one. */
+  citedBy: number | null;
+  metadataSource?: string;
+  referenceSource?: string;
   /** Hand-picked landmark, as opposed to found by following citations. */
   seed: boolean;
   /** IDs of papers in this collection that this paper cites. */
@@ -48,6 +51,9 @@ export interface Paper {
 export interface Literature {
   source: string;
   collectedAt: string;
+  /** Collection dates for fields refreshed independently of the original catalogue. */
+  fieldCollectedAt?: Partial<Record<FieldId, string>>;
+  fieldSources?: Partial<Record<FieldId, string>>;
   method: string;
   papers: Paper[];
 }

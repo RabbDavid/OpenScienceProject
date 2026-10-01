@@ -12,7 +12,7 @@ import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import { ArrowRight, ArrowUpRight, Layers as LayersIcon, Minus, Plus, Scan, X } from 'lucide-react';
 import type { Contribution, Field, Paper, Snapshot, Task } from '../shared/types.ts';
-import { prettyKind, prettyOrigin } from './api.ts';
+import { prettyKind, prettyOrigin, byCitations, citationLabel } from './api.ts';
 import {
   DOMAINS,
   WIDER_MAP,
@@ -911,7 +911,7 @@ export function Atlas({
           </div>
           <p className="legend-note">
             Lines show recorded relationships. Distance is a layout choice. Paper size reflects
-            OpenAlex citation counts.
+            available citation counts.
           </p>
         </div>
       </div>
@@ -984,8 +984,7 @@ function TooltipBody({ node, data }: { node: AtlasNode; data: Snapshot }) {
   let detail = kindName[node.kind];
   if (node.task) detail = `Question · ${prettyKind(node.task.kind)} · ${node.task.status}`;
   if (node.source) detail = `${sourceKindLabel(node.source.kind)} · external source`;
-  if (node.paper)
-    detail = `${node.paper.year ?? 'Undated'} · ${node.paper.citedBy.toLocaleString('en')} citations`;
+  if (node.paper) detail = `${node.paper.year ?? 'Undated'} · ${citationLabel(node.paper)}`;
   if (node.contribution) detail = `Contribution · ${node.contribution.status.replaceAll('_', ' ')}`;
   if (node.field) {
     const open = data.tasks.filter((t) => t.fieldId === node.field!.id && t.status === 'open');
@@ -1060,7 +1059,6 @@ function AtlasPanel({
         </span>
       </>,
     );
-  const byCitations = (a: Paper, b: Paper) => b.citedBy - a.citedBy;
   const contributionLink = (c: Contribution) =>
     record(
       nodeId.contribution(c.id),
@@ -1234,7 +1232,11 @@ function AtlasPanel({
           <dt>Published in</dt>
           <dd>{paper.venue ?? 'Not recorded'}</dd>
           <dt>Citations</dt>
-          <dd>{paper.citedBy.toLocaleString('en')} according to OpenAlex</dd>
+          <dd>
+            {paper.citedBy === null
+              ? 'Not available'
+              : `${paper.citedBy.toLocaleString('en')} according to OpenAlex`}
+          </dd>
         </dl>
         <div className="panel-meta">
           {f && <FieldChip field={f} />}

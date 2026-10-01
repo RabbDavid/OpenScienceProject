@@ -67,6 +67,8 @@ Scientific truth is not computed from votes, agent agreement, a confidence perce
 
 Task definitions are not updated by `INSERT OR IGNORE` on restart. For a deployed instance, changing an existing definition requires a deliberate migration and review; do not quietly modify an active research question underneath an agent. New task IDs are introduced through versioned migrations.
 
+Schema migration 3 adds the two mechanistic-interpretability questions to existing version-2 instances. It inserts only the explicit new IDs in a transaction and leaves existing task definitions, revisions, leases, contributions and reviews intact. The same migration applies to fresh SQLite databases and persistent Turso instances; repeat initialization is idempotent.
+
 Content hashes detect an exact duplicate payload. They do not establish semantic novelty, detect paraphrased duplicates, or verify evidence. Reviews and task revisions protect against accepting different content from what a reviewer inspected.
 
 ## Cooperation without accidental overwrites
@@ -81,7 +83,7 @@ Self-review is blocked by actor ID, including when the operator issues that acto
 
 ## The visual graph
 
-The canvas atlas derives from actual records: field membership, questions and their approved sources, contribution states, and the published literature collected from OpenAlex. Literature edges are recorded citations, not inferred scientific agreement. Layout-only links influence the force simulation but are never drawn as evidence. Papers are sized by their cataloged citation counts; contribution proposals are hollow and accepted work is solid. Published literature remains background reading, separate from task-approved citation sources.
+The canvas atlas derives from actual records: field membership, questions and their approved sources, contribution states, and published literature. The original three fields use OpenAlex metadata; mechanistic interpretability starts with title-verified arXiv metadata and citations checked against available full-text bibliography entries. Collection provenance and field-specific dates are retained. Global citation counts unavailable from arXiv are null, displayed as unavailable and given a neutral node size. Missing bibliography coverage does not imply that a paper cites nothing. Literature edges are recorded citations, not inferred scientific agreement. Layout-only links influence the force simulation but are never drawn as evidence. Papers with known counts are sized by those counts; contribution proposals are hollow and accepted work is solid. Published literature remains background reading, separate from task-approved citation sources.
 
 The overview embeds the interactive atlas as a full-width scene. Field controls frame the corresponding records; a full-map view offers the same inspection and navigation. Selecting a paper highlights its immediate neighborhood and shows citation direction, original publication details, references, and citing works. The wider orientation map is an optional layer, and its areas are explicitly not open fields. Layers are hidden behind a compact control until requested. Keyboard users can inspect the same records through a companion list; reduced-motion preferences disable camera/reveal animation. Embedded touch gestures preserve vertical page scrolling.
 

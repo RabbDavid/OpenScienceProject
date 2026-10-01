@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../server/app.ts';
 import { Store } from '../server/store.ts';
+import { buildAtlas } from '../src/atlas.ts';
 const cleanups: (() => void | Promise<void>)[] = [];
 afterEach(async () => {
   for (const clean of cleanups.splice(0).reverse()) await clean();
@@ -98,7 +99,7 @@ test('public discovery is compact and does not invent activity', async () => {
   assert.equal(manifest.response.status, 200);
   assert.equal(manifest.data.protocol, 'openscience/0.1');
   const result = await f.call('/tasks?status=open&limit=2');
-  assert.equal(result.data.total, 6);
+  assert.equal(result.data.total, 8);
   assert.equal(result.data.items.length, 2);
   assert.equal(result.data.nextOffset, 2);
   assert.ok(!('description' in result.data.items[0]));
@@ -107,6 +108,55 @@ test('public discovery is compact and does not invent activity', async () => {
   assert.equal(snapshot.data.stats.contributors, 0);
   assert.deepEqual(snapshot.data.events, []);
 });
+test('mechanistic interpretability is an active, source-scoped field with usable questions', async () => {
+  const f = await fixture();
+  const manifest = await f.call('/manifest');
+  assert.equal(manifest.data.fields.at(-1).id, 'mechinterp');
+  const tree = await f.call('/tree');
+  assert.ok(
+    tree.data.directories.some(
+      (field: { path: string }) => field.path === 'methods/ai/mechanistic-interpretability',
+    ),
+  );
+  const sources = await f.call('/sources?field=mechinterp');
+  assert.equal(sources.data.length, 4);
+  const tasks = await f.call('/tasks?field=mechinterp&status=open');
+  assert.equal(tasks.data.total, 2);
+  for (const task of tasks.data.items) {
+    const context = await f.call(`/tasks/${task.id}/context?max_bytes=4096`);
+    assert.equal(context.response.status, 200);
+    assert.ok(
+      context.data.sources.every((source: { id: string }) =>
+        sources.data.some((approved: { id: string }) => approved.id === source.id),
+      ),
+    );
+    assert.ok(context.data.task.exclusions.length);
+    const claim = await f.call(
+      `/tasks/${task.id}/claim`,
+      { expectedRevision: context.data.task.revision },
+      f.key.key,
+    );
+    assert.equal(claim.response.status, 201);
+    const release = await f.call(
+      `/tasks/${task.id}/release`,
+      { leaseToken: claim.data.leaseToken },
+      f.key.key,
+    );
+    assert.equal(release.response.status, 200);
+  }
+  const papers = await f.call('/papers?field=mechinterp&limit=10');
+  assert.equal(papers.response.status, 200);
+  assert.ok(papers.data.total >= 6);
+  const snapshot = await f.call('/snapshot');
+  const graph = buildAtlas(snapshot.data);
+  assert.ok(graph.nodes.some((node) => node.id === 'field:mechinterp' && node.live));
+  assert.ok(
+    !graph.nodes.some(
+      (node) => node.kind === 'future' && node.label === 'Mechanistic interpretability',
+    ),
+  );
+});
+
 test('literature is real, compact, and internally linked', async () => {
   const f = await fixture();
   const list = await f.call('/papers?field=batteries&limit=5');

@@ -526,7 +526,7 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<str
   for (const { node } of placed.values()) {
     if (!node.paper) continue;
     const prior = landmarks.get(node.paper.fieldId);
-    if (!prior || node.paper.citedBy > (prior.paper?.citedBy ?? 0))
+    if (!prior || (node.paper.citedBy ?? -1) > (prior.paper?.citedBy ?? -1))
       landmarks.set(node.paper.fieldId, node);
   }
   // Zoomed far out (small screens), labels shrink a little so the clusters stay legible.

@@ -70,13 +70,6 @@ export const WIDER_MAP: readonly {
   { id: 'citation-integrity', name: 'Citation integrity', domain: 'methods' },
   { id: 'negative-results', name: 'Negative results', domain: 'methods' },
   { id: 'research-software', name: 'Research software', domain: 'methods' },
-  {
-    id: 'mechanistic-interpretability',
-    name: 'Mechanistic interpretability',
-    domain: 'methods',
-    description:
-      'Study model features and circuits through reproducible experiments on open models.',
-  },
   { id: 'open-data-licensing', name: 'Open data licensing', domain: 'methods' },
 ];
 
@@ -143,9 +136,10 @@ export const fieldIdOf = (node: AtlasNode) =>
 /** Composition anchors organise fields; their distance has no scientific meaning. */
 export const researchAnchor = (node: AtlasNode): [number, number] => {
   const field = fieldIdOf(node);
-  if (field === 'batteries') return [-110, -150];
-  if (field === 'solar') return [-125, 175];
-  if (field === 'reproducibility') return [310, 20];
+  if (field === 'batteries') return [-130, -170];
+  if (field === 'solar') return [-130, 175];
+  if (field === 'reproducibility') return [295, -160];
+  if (field === 'mechinterp') return [295, 185];
   return anchorOf(node.domain);
 };
 
@@ -237,7 +231,7 @@ export function buildAtlas(data: Snapshot) {
       label: paper.title,
       domain: domainOf(field),
       color: field.color,
-      r: 1.6 + Math.log10(paper.citedBy + 1) * 1.05,
+      r: paper.citedBy === null ? 2.8 : 1.6 + Math.log10(paper.citedBy + 1) * 1.05,
       layer: 'literature',
       paper,
       live: true,
@@ -306,6 +300,8 @@ export function buildAtlas(data: Snapshot) {
 
 /** A curated source and a collected paper are the same work when the source links to its DOI. */
 export function sameWork(source: Source, paper: Paper) {
+  const arxivId = paper.doi?.match(/arxiv\.(\d{4}\.\d{4,5})/i)?.[1];
+  if (arxivId && source.url.includes(arxivId)) return true;
   const suffix = paper.doi?.replace(/^https:\/\/doi\.org\/[^/]+\//, '').toLowerCase();
   return !!suffix && suffix.length >= 8 && source.url.toLowerCase().includes(suffix);
 }

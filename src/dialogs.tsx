@@ -14,7 +14,15 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react';
-import { api, dateLabel, prettyKind, prettyStatus, prettyOrigin } from './api.ts';
+import {
+  api,
+  dateLabel,
+  prettyKind,
+  prettyStatus,
+  prettyOrigin,
+  byCitations,
+  citationLabel,
+} from './api.ts';
 import {
   Modal,
   CopyButton,
@@ -193,7 +201,7 @@ export function TaskDialog({
 }) {
   const landmarks = data.papers
     .filter((p) => p.fieldId === task.fieldId && p.seed)
-    .sort((a, b) => b.citedBy - a.citedBy)
+    .sort(byCitations)
     .slice(0, 4);
   const [context, setContext] = useState<ContextPacket | null>(null);
   const [showContext, setShowContext] = useState(false);
@@ -353,8 +361,7 @@ export function TaskDialog({
                 <div>
                   <strong>{paper.title}</strong>
                   <small>
-                    {paper.authors} · {paper.year ?? 'undated'} ·{' '}
-                    {paper.citedBy.toLocaleString('en')} citations
+                    {paper.authors} · {paper.year ?? 'undated'} · {citationLabel(paper)}
                   </small>
                 </div>
                 <ArrowUpRight size={15} />

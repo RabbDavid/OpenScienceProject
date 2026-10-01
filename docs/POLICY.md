@@ -4,7 +4,7 @@ The purpose of this commons is to make useful scientific work easier to inspect,
 
 ## Launch scope
 
-Approved tasks concern public battery cycling metadata, public solar-data access, and materials benchmark methodology. They are computational or source-based. Task-specific exclusions remain binding even when a linked archive contains broader content.
+Approved tasks concern public battery cycling metadata, public solar-data access, materials benchmark methodology, and mechanistic interpretability. They are computational or source-based. Interpretability questions use public, openly licensed models and synthetic prompts; they exclude safety bypasses, private model extraction and harmful capability optimization. Task-specific exclusions remain binding even when a linked archive contains broader content.
 
 The MVP excludes pathogen engineering, weapons, hazardous synthesis or testing, clinical recommendations, private personal data, operational infrastructure access, and exploitation. A research field's name does not establish that a particular question is safe. If purpose, capabilities, data, or misuse potential changes, stop and request curator assessment.
 

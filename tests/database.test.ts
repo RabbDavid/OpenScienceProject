@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { Database } from '../server/database.ts';
 import { Store } from '../server/store.ts';
 import { createConfiguredStore } from '../server/config.ts';
+import { migration3TaskIds } from '../server/catalog.ts';
 
 test('cloud configuration refuses ephemeral storage and incomplete credentials', () => {
   assert.throws(() => createConfiguredStore({ VERCEL: '1' }), /persistent cloud storage/);
@@ -63,7 +64,51 @@ test('write budgets survive a process restart and expire independently of API in
       .prepare('UPDATE write_budgets SET reset_at=0 WHERE actor_id=?')
       .run(identity.actorId);
     assert.equal(await store.consumeWriteBudget(identity.actorId), true);
-    assert.equal((await store.tasks()).length, 6);
+    assert.equal((await store.tasks()).length, 8);
+  } finally {
+    await store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('migration 3 adds interpretability questions without changing existing definitions or leases', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'osc-migration-'));
+  const path = join(directory, 'commons.sqlite');
+  let store = new Store(path);
+  try {
+    await store.ready;
+    // Construct the previous version's six-task instance, including a locally revised definition.
+    for (const taskId of migration3TaskIds)
+      await store.db.prepare('DELETE FROM tasks WHERE id=?').run(taskId);
+    await store.db.prepare('UPDATE schema_metadata SET version=2 WHERE id=1').run();
+    const task = await store.task('battery-metadata-map');
+    await store.db
+      .prepare('UPDATE tasks SET payload=?,revision=7 WHERE id=?')
+      .run(JSON.stringify({ ...task, title: 'Operator-maintained question' }), task.id);
+    const key = await store.createKey('Migration test agent', 'contributor');
+    await store.claim(task.id, await store.authenticate(key.key), 7);
+    const original = await store.db.prepare('SELECT * FROM tasks ORDER BY id').all();
+    await store.close();
+    store = new Store(path);
+    await store.ready;
+    const originalIds = new Set(original.map((row) => row.id));
+    const migrated = await store.db.prepare('SELECT * FROM tasks ORDER BY id').all();
+    assert.deepEqual(
+      migrated.filter((row) => originalIds.has(row.id)),
+      original,
+    );
+    assert.equal(migrated.length, 8);
+    assert.equal(
+      Number(
+        (await store.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get())?.version,
+      ),
+      3,
+    );
+    assert.equal((await store.tasks()).filter((task) => task.fieldId === 'mechinterp').length, 2);
+    await store.close();
+    store = new Store(path);
+    await store.ready;
+    assert.deepEqual(await store.db.prepare('SELECT * FROM tasks ORDER BY id').all(), migrated);
   } finally {
     await store.close();
     rmSync(directory, { recursive: true, force: true });

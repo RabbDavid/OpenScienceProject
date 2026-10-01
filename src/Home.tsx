@@ -1,8 +1,8 @@
 import type { CSSProperties, MouseEvent } from 'react';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BrainCircuit } from 'lucide-react';
 import type { Contribution, Field, Paper, Snapshot, Task } from '../shared/types.ts';
 import { Atlas } from './AtlasView.tsx';
-import { dateLabel, prettyKind, prettyOrigin } from './api.ts';
+import { dateLabel, prettyKind, prettyOrigin, byCitations, citationLabel } from './api.ts';
 import { CopyButton, fieldIcon } from './components.tsx';
 import { ContextDemo } from './ContextDemo.tsx';
 import { PixelGarden } from './PixelGarden.tsx';
@@ -40,7 +40,7 @@ export function Home({
   const reviewed = data.contributions
     .filter((c) => c.status === 'accepted')
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  const mostCited = [...data.papers].sort((a, b) => b.citedBy - a.citedBy).slice(0, 5);
+  const mostCited = [...data.papers].sort(byCitations).slice(0, 5);
   const go = (view: Parameters<Go>[0]) => (e: MouseEvent) => {
     e.preventDefault();
     navigate(view);
@@ -121,6 +121,9 @@ export function Home({
                   onClick={() => onField(field)}
                 >
                   <div className="ov-field-lead">
+                    {field.id === 'mechinterp' && (
+                      <BrainCircuit className="ov-field-art ov-field-circuit" aria-hidden="true" />
+                    )}
                     {fieldArtwork[field.id] && (
                       <img
                         className="ov-field-art"
@@ -196,8 +199,7 @@ export function Home({
                         className="field-dot"
                         style={{ background: fieldOf(paper.fieldId).color }}
                       />
-                      {paper.authors.split(',')[0]} · {paper.year} ·{' '}
-                      {paper.citedBy.toLocaleString('en')} citations
+                      {paper.authors.split(',')[0]} · {paper.year} · {citationLabel(paper)}
                     </small>
                   </li>
                 ))}

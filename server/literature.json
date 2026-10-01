@@ -1,7 +1,7 @@
 {
-  "source": "OpenAlex (https://openalex.org), CC0 metadata",
+  "source": "OpenAlex CC0 metadata for the original three fields; primary arXiv metadata and bibliography entries for mechanistic interpretability.",
   "collectedAt": "2026-10-01",
-  "method": "Landmark papers per field, resolved by exact title, expanded through their references and most-cited citing works; on-topic titles only; edges are citations between included papers.",
+  "method": "Original fields: exact-title OpenAlex snowball collection. Mechanistic interpretability: eight curated arXiv papers, title-verified metadata, and citations verified against available full-text bibliography entries. Links record citations, not agreement; missing reference coverage is not evidence of no citations.",
   "papers": [
     {
       "id": "W2113449668",
@@ -2402,6 +2402,150 @@
       "citedBy": 100,
       "seed": false,
       "references": ["W2527957384", "W2779654591", "W2889814654"]
+    },
+    {
+      "id": "arxiv-2406.04093",
+      "fieldId": "mechinterp",
+      "title": "Scaling and evaluating sparse autoencoders",
+      "authors": "Gao, la Tour, Tillman, et al.",
+      "year": 2024,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2406.04093",
+      "url": "https://arxiv.org/abs/2406.04093",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": ["arxiv-2209.10652", "arxiv-2309.08600"],
+      "referenceSource": "https://arxiv.org/html/2406.04093v1"
+    },
+    {
+      "id": "arxiv-2309.08600",
+      "fieldId": "mechinterp",
+      "title": "Sparse Autoencoders Find Highly Interpretable Features in Language Models",
+      "authors": "Cunningham, Ewart, Riggs, et al.",
+      "year": 2023,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2309.08600",
+      "url": "https://arxiv.org/abs/2309.08600",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": ["arxiv-2209.10652", "arxiv-2211.00593", "arxiv-2304.14997"],
+      "referenceSource": "https://arxiv.org/html/2309.08600v3"
+    },
+    {
+      "id": "arxiv-2309.16042",
+      "fieldId": "mechinterp",
+      "title": "Towards Best Practices of Activation Patching in Language Models: Metrics and Methods",
+      "authors": "Zhang, Nanda",
+      "year": 2023,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2309.16042",
+      "url": "https://arxiv.org/abs/2309.16042",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": [
+        "arxiv-2012.14913",
+        "arxiv-2211.00593",
+        "arxiv-2301.05217",
+        "arxiv-2304.14997",
+        "arxiv-2309.08600"
+      ],
+      "referenceSource": "https://arxiv.org/html/2309.16042v2"
+    },
+    {
+      "id": "arxiv-2304.14997",
+      "fieldId": "mechinterp",
+      "title": "Towards Automated Circuit Discovery for Mechanistic Interpretability",
+      "authors": "Conmy, Mavor-Parker, Lynch, et al.",
+      "year": 2023,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2304.14997",
+      "url": "https://arxiv.org/abs/2304.14997",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": [
+        "arxiv-2012.14913",
+        "arxiv-2209.10652",
+        "arxiv-2211.00593",
+        "arxiv-2301.05217"
+      ],
+      "referenceSource": "https://arxiv.org/html/2304.14997v4"
+    },
+    {
+      "id": "arxiv-2301.05217",
+      "fieldId": "mechinterp",
+      "title": "Progress measures for grokking via mechanistic interpretability",
+      "authors": "Nanda, Chan, Lieberum, et al.",
+      "year": 2023,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2301.05217",
+      "url": "https://arxiv.org/abs/2301.05217",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": ["arxiv-2211.00593"],
+      "referenceSource": "https://arxiv.org/html/2301.05217v3"
+    },
+    {
+      "id": "arxiv-2209.10652",
+      "fieldId": "mechinterp",
+      "title": "Toy Models of Superposition",
+      "authors": "Elhage, Hume, Olsson, et al.",
+      "year": 2022,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2209.10652",
+      "url": "https://arxiv.org/abs/2209.10652",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": []
+    },
+    {
+      "id": "arxiv-2211.00593",
+      "fieldId": "mechinterp",
+      "title": "Interpretability in the Wild: a Circuit for Indirect Object Identification in GPT-2 small",
+      "authors": "Wang, Variengien, Conmy, et al.",
+      "year": 2022,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2211.00593",
+      "url": "https://arxiv.org/abs/2211.00593",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": ["arxiv-2012.14913"],
+      "referenceSource": "https://arxiv.org/html/2211.00593v1"
+    },
+    {
+      "id": "arxiv-2012.14913",
+      "fieldId": "mechinterp",
+      "title": "Transformer Feed-Forward Layers Are Key-Value Memories",
+      "authors": "Geva, Schuster, Berant, et al.",
+      "year": 2020,
+      "venue": "arXiv",
+      "doi": "https://doi.org/10.48550/arXiv.2012.14913",
+      "url": "https://arxiv.org/abs/2012.14913",
+      "openAccess": true,
+      "citedBy": null,
+      "metadataSource": "arXiv",
+      "seed": true,
+      "references": [],
+      "referenceSource": "https://arxiv.org/html/2012.14913v2"
     }
-  ]
+  ],
+  "fieldCollectedAt": {
+    "mechinterp": "2026-10-01"
+  },
+  "fieldSources": {
+    "mechinterp": "Primary arXiv metadata and bibliography entries; global citation counts unavailable."
+  }
 }

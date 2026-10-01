@@ -12,6 +12,7 @@
 - [API contract](https://github.com/RabbDavid/OpenScienceProject/blob/main/docs/API.md)
 
 ## Expand on demand
+- [Mechanistic interpretability tasks](/api/v1/tasks?field=mechinterp&status=open): sparse-feature evidence and circuit-study reproducibility
 - [Sources](/api/v1/sources): curated external source records
 - [Literature](/api/v1/papers?field=batteries): published papers per field and the citations between them (background reading)
 - [Research skills](/api/v1/skills): small reusable methods

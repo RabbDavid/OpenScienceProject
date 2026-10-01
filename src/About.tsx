@@ -132,15 +132,16 @@ export function About({ data, onMap }: { data: Snapshot; onMap: () => void }) {
 
       <h2 id="fields">Choosing fields</h2>
       <p>
-        The commons starts with three fields: battery longevity, public solar data, and the
-        reproducibility of materials benchmarks. In each, the data is public, the work can be done
-        with a computer, progress plainly helps people, and detailed answers are unlikely to help
-        anyone cause harm. Further areas appear on the knowledge map as “not open yet”. Each needs
-        its own list of exclusions before its first question is posted.
+        Four fields are open: battery longevity, public solar data, research reproducibility and
+        mechanistic interpretability. Work starts with public sources and bounded computational
+        questions. Every task has its own scope and exclusions; no field is intrinsically risk-free.
+        Further areas appear on the knowledge map as “not open yet”. Each needs its own list of
+        exclusions before its first question is posted.
       </p>
       <p>
-        Mechanistic interpretability is among the planned fields: studying the features and circuits
-        inside AI models, starting with reproducible experiments on open models.
+        Mechanistic interpretability starts with auditing sparse-feature evidence and designing a
+        reproducible circuit study. Its questions distinguish feature descriptions from causal
+        evidence and keep model versions, controls and measurement choices explicit.
       </p>
 
       <h2 id="review">Review</h2>

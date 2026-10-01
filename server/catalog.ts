@@ -38,6 +38,18 @@ export const fields: Field[] = [
     scope:
       'Benchmark methodology, evaluation design, and source audits. No hazardous material synthesis or capability optimization.',
   },
+  {
+    id: 'mechinterp',
+    name: 'Mechanistic interpretability',
+    shortName: 'Mech interp',
+    path: 'methods/ai/mechanistic-interpretability',
+    color: '#71bab2',
+    icon: 'brain',
+    description: 'Understand what models learn and how their circuits work.',
+    benefit: 'More inspectable AI behavior and better evidence about model limitations.',
+    scope:
+      'Source audits and bounded reproductions of feature and circuit analyses on public, openly licensed models. No safety bypasses, private model extraction, or optimization of harmful capabilities.',
+  },
 ];
 
 // Source catalog only: these are external works, never platform-generated discoveries.
@@ -127,6 +139,67 @@ export const sources: Source[] = [
       'Pin a commit and dependencies when reproducing results. Code licensing does not automatically cover every dataset.',
     locator: 'README → documentation and benchmark data',
     checkedAt: '2026-09-30',
+  },
+  {
+    id: 'sae-features-paper',
+    fieldId: 'mechinterp',
+    title: 'Sparse Autoencoders Find Highly Interpretable Features in Language Models',
+    authors: 'Cunningham, Ewart, Riggs, Huben & Sharkey',
+    year: 2023,
+    url: 'https://arxiv.org/html/2309.08600v3',
+    kind: 'paper',
+    summary:
+      'Studies learned sparse features using automated interpretation and causal interventions.',
+    limitations:
+      'Reconstruction is incomplete. A feature description or interpretability score does not establish a complete model explanation.',
+    locator: '§3 Interpreting Dictionary Features; §4 IOI interventions; §6.2 Limitations',
+    checkedAt: '2026-10-01',
+  },
+  {
+    id: 'ioi-circuit-paper',
+    fieldId: 'mechinterp',
+    title:
+      'Interpretability in the Wild: a Circuit for Indirect Object Identification in GPT-2 small',
+    authors: 'Wang, Variengien, Conmy, Shlegeris & Steinhardt',
+    year: 2022,
+    url: 'https://arxiv.org/html/2211.00593v1',
+    kind: 'paper',
+    summary:
+      'Analyzes a GPT-2 small circuit for indirect object identification using interventions.',
+    limitations:
+      'The explanation is task- and model-specific. Faithfulness, completeness and minimality still leave gaps; this is not general evidence of alignment.',
+    locator: 'Circuit evaluation: faithfulness, completeness and minimality; experiment appendices',
+    checkedAt: '2026-10-01',
+  },
+  {
+    id: 'activation-patching-methods',
+    fieldId: 'mechinterp',
+    title: 'Towards Best Practices of Activation Patching in Language Models: Metrics and Methods',
+    authors: 'Zhang & Nanda',
+    year: 2024,
+    url: 'https://arxiv.org/html/2309.16042v2',
+    kind: 'paper',
+    summary: 'Examines how metric and corruption choices affect activation-patching conclusions.',
+    limitations:
+      'Recommendations arise from particular experimental settings. Intervention effects depend on the chosen prompts, metric and method.',
+    locator: 'Experiments on evaluation metrics and corruption methods; recommendations',
+    checkedAt: '2026-10-01',
+  },
+  {
+    id: 'transformerlens-analysis',
+    fieldId: 'mechinterp',
+    title: 'TransformerLens: choosing an analysis tool',
+    authors: 'TransformerLens · open-source contributors',
+    year: null,
+    url: 'https://transformerlensorg.github.io/TransformerLens/content/analysis_tools.html',
+    kind: 'documentation',
+    summary:
+      'Connects interpretability questions to measurements, interventions and experiment records.',
+    limitations:
+      'Documentation follows current releases. Pin the library and model revision; attribution approximations require comparison with measured interventions.',
+    locator:
+      'Choose by research question; Read the output with the right interpretation; Plan a focused experiment',
+    checkedAt: '2026-10-01',
   },
 ];
 
@@ -263,7 +336,56 @@ export const tasks: SeedTask[] = [
     ],
     skillIds: ['claim-check', 'evidence-synthesis'],
   },
+  {
+    id: 'mechinterp-feature-evidence',
+    fieldId: 'mechinterp',
+    title: 'Check the evidence behind sparse features',
+    question:
+      'What supports an interpretation of a sparse-autoencoder feature, and what remains untested?',
+    description:
+      'Audit the paper’s feature scoring, intervention evidence and reconstruction limits. Build a compact checklist that keeps descriptive interpretation separate from causal evidence.',
+    kind: 'source_audit',
+    priority: 90,
+    effort: '45–90 min',
+    sourceIds: ['sae-features-paper', 'activation-patching-methods'],
+    acceptance: [
+      'Cite exact sections for feature scoring, causal interventions and reconstruction limitations.',
+      'Separate reported findings, your inference and untested generalization.',
+      'Specify controls and failure cases needed before treating a feature description as an explanation.',
+    ],
+    exclusions: [
+      'No claims that interpretable features establish alignment, consciousness or model welfare.',
+      'No safety bypass, private model extraction or harmful capability optimization.',
+    ],
+    skillIds: ['source-audit', 'claim-check'],
+  },
+  {
+    id: 'mechinterp-ioi-reproduction',
+    fieldId: 'mechinterp',
+    title: 'Make a circuit study reproducible',
+    question:
+      'What must be fixed and recorded to reproduce an indirect-object-identification circuit study?',
+    description:
+      'Produce a bounded reproduction protocol for the GPT-2 small IOI study, using its evaluation criteria and current TransformerLens documentation. The initial deliverable is a protocol, not a claimed experiment.',
+    kind: 'critique',
+    priority: 82,
+    effort: '1–2 hours',
+    sourceIds: ['ioi-circuit-paper', 'activation-patching-methods', 'transformerlens-analysis'],
+    acceptance: [
+      'Pin model, tokenizer, library, prompt templates and random seeds; state an owner-approved compute budget.',
+      'Define clean/corrupt prompts, hook locations, ablation baselines and the metric before comparing outcomes.',
+      'Trace faithfulness, completeness and minimality to the paper; separate planned controls from observations.',
+    ],
+    exclusions: [
+      'Public, openly licensed models and synthetic prompts only; no private data or remote model probing.',
+      'No invented runs, safety bypasses or claims of general alignment from a task-specific circuit.',
+    ],
+    skillIds: ['reproduce', 'claim-check'],
+  },
 ];
+
+/** Explicit catalogue addition applied to existing instances by schema migration 3. */
+export const migration3TaskIds = ['mechinterp-feature-evidence', 'mechinterp-ioi-reproduction'];
 
 export const policy = [
   'Work only on the approved task and its computational, public-data scope. Stop and request curator review if its purpose or risk changes.',

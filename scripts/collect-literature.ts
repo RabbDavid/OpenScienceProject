@@ -8,10 +8,10 @@
  *      how many seeds they connect to, then by citation count.
  *   4. Record every citation between the selected papers. These become the map's edges.
  *
- * Run: npm run literature   (about 100 requests, roughly $0.04 of OpenAlex credit. Anonymous use
- * gets $0.10 a day; set OPENALEX_API_KEY for more.)
+ * Run: npm run literature, or npm run literature -- --field=mechinterp to refresh one field.
+ * OpenAlex quotas may change. Requests fail explicitly when access or quota is unavailable.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import type { FieldId, Literature, Paper } from '../shared/types.ts';
 
 const API = 'https://api.openalex.org';
@@ -74,6 +74,19 @@ const plans: Record<FieldId, FieldPlan> = {
       /material|crystal|benchmark|reproduc|replicat|machine.learning|neural|graph network|dataset|leakage|formation energ|stability|property prediction|interatomic|density functional|\bdft\b/i,
     exclude: /explosive|energetic material|toxic|weapon|warfare/i,
   },
+  mechinterp: {
+    seeds: [
+      'Toy Models of Superposition',
+      'Interpretability in the Wild: a Circuit for Indirect Object Identification in GPT-2 small',
+      'Sparse Autoencoders Find Highly Interpretable Features in Language Models',
+      'Towards Best Practices of Activation Patching in Language Models: Metrics and Methods',
+      'Towards Automated Circuit Discovery for Mechanistic Interpretability',
+      'Progress measures for grokking via mechanistic interpretability',
+    ],
+    topic:
+      /mechanistic|interpretab|circuit|superposition|sparse.autoencoder|activation.patch|induction.head|grokking/i,
+    exclude: /jailbreak|backdoor|exploit|weapon|malware|offensive|attack/i,
+  },
 };
 
 interface Work {
@@ -95,6 +108,19 @@ interface Work {
 const FULL =
   'id,doi,title,publication_year,cited_by_count,type,authorships,primary_location,open_access,referenced_works';
 const BRIEF = 'id,title,publication_year,cited_by_count,type';
+// Known arXiv DOIs permit exact single-work lookup without a paid title search.
+const seedDois: Record<string, string> = {
+  'Toy Models of Superposition': '10.48550/arXiv.2209.10652',
+  'Interpretability in the Wild: a Circuit for Indirect Object Identification in GPT-2 small':
+    '10.48550/arXiv.2211.00593',
+  'Sparse Autoencoders Find Highly Interpretable Features in Language Models':
+    '10.48550/arXiv.2309.08600',
+  'Towards Best Practices of Activation Patching in Language Models: Metrics and Methods':
+    '10.48550/arXiv.2309.16042',
+  'Towards Automated Circuit Discovery for Mechanistic Interpretability':
+    '10.48550/arXiv.2304.14997',
+  'Progress measures for grokking via mechanistic interpretability': '10.48550/arXiv.2301.05217',
+};
 let requests = 0;
 
 async function get<T>(path: string): Promise<T> {
@@ -129,6 +155,10 @@ async function batch(ids: string[], select: string): Promise<Work[]> {
 }
 
 async function resolveSeed(title: string): Promise<Work | null> {
+  if (seedDois[title]) {
+    const work = await get<Work>(`/works/https://doi.org/${seedDois[title]}?select=${FULL}`);
+    return work.title && norm(work.title) === norm(title) ? work : null;
+  }
   const query = encodeURIComponent(norm(title));
   const page = await get<{ results: Work[] }>(
     `/works?filter=title.search:${query}&sort=cited_by_count:desc&per-page=5&select=${FULL}`,
@@ -142,14 +172,27 @@ const authorsOf = (w: Work) => {
 };
 
 async function main() {
+  const fieldOption = process.argv
+    .slice(2)
+    .find((arg) => arg.startsWith('--field='))
+    ?.slice(8);
+  if (fieldOption && !(fieldOption in plans)) throw new Error(`Unknown field: ${fieldOption}`);
+  const selectedField = fieldOption as FieldId | undefined;
+  const output = new URL('../server/literature.json', import.meta.url);
+  const existing: Literature | undefined = selectedField
+    ? JSON.parse(readFileSync(output, 'utf8'))
+    : undefined;
+  const retained = existing?.papers.filter((paper) => paper.fieldId !== selectedField) ?? [];
+  const retainedIds = new Set(retained.map((paper) => `https://openalex.org/${paper.id}`));
   const chosen = new Map<string, { work: Work; fieldId: FieldId; seed: boolean }>();
   const unresolved: string[] = [];
 
   for (const [fieldId, plan] of Object.entries(plans) as [FieldId, FieldPlan][]) {
+    if (selectedField && fieldId !== selectedField) continue;
     const seeds: Work[] = [];
     for (const title of plan.seeds) {
       const work = await resolveSeed(title);
-      if (work) seeds.push(work);
+      if (work && !retainedIds.has(work.id)) seeds.push(work);
       else unresolved.push(`${fieldId}: ${title}`);
     }
     const seedIds = new Set(seeds.map((s) => s.id));
@@ -168,6 +211,7 @@ async function main() {
         plan.topic.test(w.title) &&
         !plan.exclude.test(w.title) &&
         !chosen.has(w.id) &&
+        !retainedIds.has(w.id) &&
         ['article', 'review', 'preprint', 'book-chapter'].includes(w.type ?? 'article'),
     );
     candidates.sort(
@@ -184,9 +228,10 @@ async function main() {
     console.log(`${fieldId}: ${seeds.length} seeds, ${picked.length} snowballed`);
   }
 
-  const ids = new Set([...chosen.keys()].map(short));
+  if (!chosen.size) throw new Error('No papers resolved; the existing catalogue was not changed.');
+  const ids = new Set([...chosen.keys()].map(short).concat(retained.map((paper) => paper.id)));
   const papers: Paper[] = [...chosen.values()]
-    .map(({ work, fieldId, seed }) => ({
+    .map<Paper>(({ work, fieldId, seed }) => ({
       id: short(work.id),
       fieldId,
       title: work.title!.replace(/<[^>]+>/g, ''),
@@ -207,19 +252,36 @@ async function main() {
         .filter((r) => ids.has(r))
         .sort(),
     }))
-    .sort((a, b) => a.fieldId.localeCompare(b.fieldId) || b.citedBy - a.citedBy);
+    .concat(
+      retained.map((paper) => ({
+        ...paper,
+        references: paper.references.filter((id) => ids.has(id)),
+      })),
+    )
+    .sort((a, b) => a.fieldId.localeCompare(b.fieldId) || (b.citedBy ?? -1) - (a.citedBy ?? -1));
 
   const literature: Literature = {
-    source: 'OpenAlex (https://openalex.org), CC0 metadata',
-    collectedAt: new Date().toISOString().slice(0, 10),
+    source:
+      selectedField && existing ? existing.source : 'OpenAlex (https://openalex.org), CC0 metadata',
+    collectedAt:
+      selectedField && existing ? existing.collectedAt : new Date().toISOString().slice(0, 10),
+    ...(selectedField && {
+      fieldCollectedAt: {
+        ...existing?.fieldCollectedAt,
+        [selectedField]: new Date().toISOString().slice(0, 10),
+      },
+      fieldSources: {
+        ...existing?.fieldSources,
+        [selectedField]: 'OpenAlex (https://openalex.org), CC0 metadata',
+      },
+    }),
     method:
-      'Landmark papers per field, resolved by exact title, expanded through their references and most-cited citing works; on-topic titles only; edges are citations between included papers.',
+      selectedField && existing
+        ? existing.method
+        : 'Landmark papers per field, resolved by exact title or known DOI, expanded through their references and most-cited citing works; on-topic titles only; edges are citations between included papers.',
     papers,
   };
-  writeFileSync(
-    new URL('../server/literature.json', import.meta.url),
-    `${JSON.stringify(literature, null, 2)}\n`,
-  );
+  writeFileSync(output, `${JSON.stringify(literature, null, 2)}\n`);
   const edges = papers.reduce((n, p) => n + p.references.length, 0);
   console.log(`${papers.length} papers, ${edges} citation links, ${requests} requests.`);
   if (unresolved.length) console.log(`Unresolved seeds:\n  ${unresolved.join('\n  ')}`);

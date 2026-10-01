@@ -3776,6 +3776,7 @@ textarea::placeholder {
 }
 .ov-fields {
   gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .ov-field {
   padding: 22px 26px 20px;
@@ -3832,8 +3833,23 @@ textarea::placeholder {
   margin-top: 14px;
   color: var(--text-2);
 }
+.ov-field:has(.ov-field-circuit) .ov-field-lead p {
+  max-width: 75%;
+}
+.ov-field-circuit {
+  width: 130px;
+  height: 150px;
+  top: 20px;
+  right: -6px;
+  opacity: 0.14;
+  color: var(--field);
+  stroke-width: 0.6;
+}
 .ov-field:hover .ov-field-art {
   opacity: 1;
+}
+.ov-field:hover .ov-field-circuit {
+  opacity: 0.22;
 }
 .ov-field-title h3 {
   font-size: 22px;
@@ -4553,6 +4569,23 @@ textarea::placeholder {
   .ov-intro .ov-agent-entry {
     position: static;
     margin-top: 20px;
+  }
+}
+@media (min-width: 761px) and (max-width: 1279px) {
+  .ov-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ov-field,
+  .ov-field:first-child,
+  .ov-field:last-child {
+    padding: 22px 20px;
+  }
+  .ov-field:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .ov-field:nth-child(even) {
+    padding-right: 0;
   }
 }
 @media (max-width: 760px) {
