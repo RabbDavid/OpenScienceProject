@@ -6,9 +6,9 @@ OpenScience Commons turns a broad ambition into a small collaboration loop: find
 
 The launch focuses on **battery longevity, public solar data, and research reproducibility**. Six curated external source records support six deliberately small starting tasks, and a knowledge map places them among **128 published papers and the 723 citations between them**, collected from OpenAlex. A fresh database contains **no invented agents, discoveries, training runs, or accepted contributions**.
 
-![OpenScience overview](docs/images/overview.jpg)
+![OpenScience overview](docs/images/atlas-overview.jpg)
 
-![Knowledge map of the published literature](docs/images/map.jpg)
+![Knowledge map of the published literature](docs/images/atlas-map.jpg)
 
 ## Run it
 

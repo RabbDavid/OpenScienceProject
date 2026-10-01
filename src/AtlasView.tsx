@@ -21,6 +21,8 @@ import {
   domainOf,
   endpoint,
   hash01,
+  fieldIdOf,
+  researchAnchor,
   mappedContribution,
   nodeId,
   sameWork,
@@ -105,14 +107,14 @@ function createSimulation(nodes: AtlasNode[], links: AtlasLink[]) {
     .force('collide', forceCollide<AtlasNode>((d) => COLLIDE[d.kind]).iterations(2))
     .force(
       'x',
-      forceX<AtlasNode>((d) => anchorOf(d.domain)[0]).strength((d) =>
-        d.kind === 'domain' ? 0.6 : 0.045,
+      forceX<AtlasNode>((d) => researchAnchor(d)[0]).strength((d) =>
+        d.kind === 'domain' ? 0.6 : d.kind === 'field' ? 0.16 : d.kind === 'paper' ? 0.085 : 0.055,
       ),
     )
     .force(
       'y',
-      forceY<AtlasNode>((d) => anchorOf(d.domain)[1]).strength((d) =>
-        d.kind === 'domain' ? 0.6 : 0.045,
+      forceY<AtlasNode>((d) => researchAnchor(d)[1]).strength((d) =>
+        d.kind === 'domain' ? 0.6 : d.kind === 'field' ? 0.16 : d.kind === 'paper' ? 0.085 : 0.055,
       ),
     )
     .stop();
@@ -192,6 +194,7 @@ interface Engine {
   revealStart: number | null;
   reveal: number;
   userMoved: boolean;
+  cameraField: string;
   reduced: boolean;
   drag: { id: string; x: number; y: number; moved: boolean; pointerId: number } | null;
   frame: number;
@@ -203,6 +206,7 @@ interface Controls {
   fit: (animate: boolean) => void;
   zoomBy: (factor: number) => void;
   reveal: (id: string) => void;
+  frameField: (id: string) => void;
 }
 
 export function Atlas({
@@ -213,6 +217,7 @@ export function Atlas({
   children,
   embedded = false,
   preview = false,
+  immersive = false,
 }: {
   data: Snapshot;
   onTask: (task: Task) => void;
@@ -224,6 +229,8 @@ export function Atlas({
   embedded?: boolean;
   /** A small, non-interactive thumbnail. The parent makes the whole thing a link. */
   preview?: boolean;
+  /** Full-width interactive overview scene. */
+  immersive?: boolean;
 }) {
   const embeddedRef = useRef(embedded);
   embeddedRef.current = embedded;
@@ -239,9 +246,10 @@ export function Atlas({
     sources: true,
     literature: true,
     contributions: true,
-    wider: !preview,
+    wider: false,
   });
   const [legendOpen, setLegendOpen] = useState(false);
+  const [cameraField, setCameraField] = useState('all');
   const engine = useRef<Engine>({
     nodes: [],
     links: [],
@@ -262,6 +270,7 @@ export function Atlas({
     revealStart: null,
     reveal: 1,
     userMoved: false,
+    cameraField: 'all',
     reduced: false,
     drag: null,
     frame: 0,
@@ -411,15 +420,20 @@ export function Atlas({
       const overlay = overlayRef.current?.getBoundingClientRect();
       const box = wrap.getBoundingClientRect();
       if (!overlay || !overlay.width) return full;
+      if (!immersive && e.width >= 960) {
+        const top = overlay.bottom - box.top + 20;
+        return { x: 28, y: top, w: e.width - 56, h: Math.max(e.height - top - 90, 200) };
+      }
       if (e.width >= 960) {
-        const left = Math.min(overlay.right - box.left, e.width * 0.42) - 40;
-        return { x: left, y: 0, w: e.width - left, h: e.height };
+        const left = Math.min(overlay.right - box.left, e.width * 0.4);
+        return { x: left, y: 24, w: e.width - left - 20, h: e.height - 115 };
       }
       const top = overlay.bottom - box.top;
-      return { x: 0, y: top, w: e.width, h: Math.max(e.height - top - 56, e.height * 0.4) };
+      return { x: 0, y: top + 12, w: e.width, h: Math.max(e.height - top - 110, e.height * 0.4) };
     };
 
     const fit = (animate: boolean) => {
+      e.cameraField = 'all';
       // On phones, frame the live records and let the dim wider map crop at the edges.
       const narrow = e.width < 760;
       const nodes = e.nodes.filter((n) => visible(n) && n.x !== undefined && (!narrow || n.live));
@@ -447,7 +461,41 @@ export function Atlas({
             ),
           0.3,
         ),
-        1.4,
+        1.85,
+      );
+      transitionTo(
+        {
+          x: free.x + free.w / 2 - (k * (minX + maxX)) / 2,
+          y: free.y + free.h / 2 - (k * (minY + maxY)) / 2,
+          k,
+        },
+        animate,
+      );
+    };
+
+    const frameField = (fieldId: string, animate = true) => {
+      const nodes = e.nodes.filter(
+        (n) => visible(n) && fieldIdOf(n) === fieldId && n.x !== undefined,
+      );
+      if (!nodes.length) return;
+      e.cameraField = fieldId;
+      e.userMoved = true;
+      const xs = nodes.map((n) => n.x!);
+      const ys = nodes.map((n) => n.y!);
+      const minX = Math.min(...xs),
+        maxX = Math.max(...xs);
+      const minY = Math.min(...ys),
+        maxY = Math.max(...ys);
+      const free = freeRect();
+      const k = Math.min(
+        2.8,
+        Math.max(
+          0.5,
+          Math.min(
+            (free.w - 100) / Math.max(maxX - minX, 1),
+            (free.h - 90) / Math.max(maxY - minY, 1),
+          ),
+        ),
       );
       transitionTo(
         {
@@ -531,6 +579,7 @@ export function Atlas({
     };
     const onPointerDown = (ev: PointerEvent) => {
       if (ev.button !== 0) return;
+      if (embeddedRef.current && ev.pointerType === 'touch') return;
       const [px, py] = local(ev);
       const node = hit(px, py);
       if (!node) return;
@@ -587,6 +636,8 @@ export function Atlas({
     const resize = (width: number, height: number) => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       if (width === e.width && height === e.height && dpr === e.dpr) return;
+      const reframe =
+        !e.userMoved || Math.abs(width - e.width) > 40 || Math.abs(height - e.height) > 40;
       e.width = width;
       e.height = height;
       e.dpr = dpr;
@@ -594,7 +645,10 @@ export function Atlas({
       canvas.height = Math.round(height * dpr);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
-      if (!e.userMoved && e.nodes.length) fit(false);
+      if (reframe && e.nodes.length) {
+        if (e.cameraField === 'all') fit(false);
+        else frameField(e.cameraField, false);
+      }
       requestDraw();
     };
     const initial = wrap.getBoundingClientRect();
@@ -605,7 +659,7 @@ export function Atlas({
     observer.observe(wrap);
     void document.fonts?.ready.then(requestDraw);
 
-    controls.current = { requestDraw, fit, zoomBy, reveal };
+    controls.current = { requestDraw, fit, zoomBy, reveal, frameField };
     requestDraw();
     return () => {
       observer.disconnect();
@@ -705,7 +759,12 @@ export function Atlas({
     if (node.layer !== 'core' && !layers[node.layer])
       setLayers((old) => ({ ...old, [node.layer]: true }));
     setSelected(id);
-    requestAnimationFrame(() => controls.current?.reveal(id));
+    requestAnimationFrame(() => {
+      controls.current?.reveal(id);
+      // Hand keyboard focus out of the record chooser. Its focus-within surface
+      // otherwise stays over the inspector and intercepts the inspector's actions.
+      wrapRef.current?.querySelector<HTMLElement>('.atlas-panel')?.focus({ preventScroll: true });
+    });
   };
 
   const hoverNode = hovered ? engine.current.byId.get(hovered) : undefined;
@@ -752,7 +811,7 @@ export function Atlas({
 
   return (
     <div
-      className={`atlas theme-dark ${embedded ? 'atlas-embedded' : ''} ${preview ? 'atlas-preview' : ''}`}
+      className={`atlas theme-dark ${embedded ? 'atlas-embedded' : ''} ${preview ? 'atlas-preview' : ''} ${immersive ? 'atlas-immersive' : ''}`}
       ref={wrapRef}
       inert={preview || undefined}
     >
@@ -773,6 +832,34 @@ export function Atlas({
         <div className="atlas-overlay" ref={overlayRef}>
           {children}
         </div>
+      )}
+      {!preview && (
+        <nav className="atlas-fields" aria-label="Focus map on a research field">
+          <button
+            aria-pressed={cameraField === 'all'}
+            onClick={() => {
+              setCameraField('all');
+              setSelected(null);
+              controls.current?.fit(true);
+            }}
+          >
+            All fields
+          </button>
+          {data.fields.map((field) => (
+            <button
+              key={field.id}
+              aria-pressed={cameraField === field.id}
+              onClick={() => {
+                setCameraField(field.id);
+                setSelected(null);
+                controls.current?.frameField(field.id);
+              }}
+            >
+              <i style={{ background: field.color }} />
+              {field.shortName}
+            </button>
+          ))}
+        </nav>
       )}
       <div className={`atlas-legend ${legendOpen ? 'is-open' : ''}`}>
         <button
@@ -822,6 +909,10 @@ export function Atlas({
               <span className="glyph-contribution is-proposed" /> Proposed
             </span>
           </div>
+          <p className="legend-note">
+            Lines show recorded relationships. Distance is a layout choice. Paper size reflects
+            OpenAlex citation counts.
+          </p>
         </div>
       </div>
       <div className="atlas-zoom" role="group" aria-label="Map zoom">
@@ -842,7 +933,10 @@ export function Atlas({
         <button
           className="icon-btn"
           aria-label="Fit the whole map"
-          onClick={() => controls.current?.fit(true)}
+          onClick={() => {
+            setCameraField('all');
+            controls.current?.fit(true);
+          }}
         >
           <Scan size={15} />
         </button>
@@ -1240,6 +1334,7 @@ function AtlasPanel({
     <aside
       className={`atlas-panel ${node.live ? '' : 'is-dark'}`}
       aria-label={`${node.label} details`}
+      tabIndex={-1}
     >
       <div className="panel-head">
         <span className="panel-kicker">{kicker}</span>

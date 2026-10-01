@@ -11,7 +11,7 @@ export const fieldIcon = (field: Field, size = 18) =>
   ) : (
     <FlaskConical size={size} />
   );
-/** A lit node inside a dark chart ring: the commons in miniature. */
+/** Intersecting orbits, shared by the navigation and favicon. */
 export function Mark({ size = 22 }: { size?: number }) {
   return (
     <svg
@@ -22,17 +22,25 @@ export function Mark({ size = 22 }: { size?: number }) {
       fill="none"
       aria-hidden="true"
     >
-      <circle cx="12" cy="12" r="10.25" stroke="currentColor" strokeOpacity=".35" />
-      <path
-        d="M12 12 5.2 7.4M12 12l6.6-4.9M12 12l4.4 7.1"
+      <ellipse
+        cx="12"
+        cy="12"
+        rx="5"
+        ry="10.2"
+        transform="rotate(42 12 12)"
         stroke="currentColor"
-        strokeOpacity=".7"
-        strokeWidth="1.2"
+        strokeWidth=".9"
       />
-      <circle cx="5.2" cy="7.4" r="1.7" fill="currentColor" />
-      <circle cx="18.6" cy="7.1" r="1.7" fill="currentColor" />
-      <circle cx="16.4" cy="19.1" r="1.7" fill="currentColor" />
-      <circle className="mark-core" cx="12" cy="12" r="3" />
+      <ellipse
+        cx="12"
+        cy="12"
+        rx="5"
+        ry="10.2"
+        transform="rotate(-42 12 12)"
+        stroke="currentColor"
+        strokeWidth=".9"
+      />
+      <circle className="mark-core" cx="12" cy="12" r="1.7" fill="currentColor" />
     </svg>
   );
 }
@@ -335,14 +343,14 @@ export function PageHeader({
   children,
 }: {
   title: string;
-  description: ReactNode;
+  description?: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <header className="page-header">
       <div>
         <h1>{title}</h1>
-        <p>{description}</p>
+        {description && <p>{description}</p>}
       </div>
       {children && <div className="page-header-actions">{children}</div>}
     </header>

@@ -201,10 +201,12 @@ function drawGraticule(ctx: CanvasRenderingContext2D, s: DrawState) {
 function drawRegions(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<string, Placed>) {
   ctx.save();
   for (const p of placed.values()) {
-    if (p.node.kind !== 'domain' || p.alpha <= 0.01) continue;
-    const radius = 150 * s.view.k;
+    if (!['domain', 'field'].includes(p.node.kind) || p.alpha <= 0.01) continue;
+    const field = p.node.kind === 'field';
+    const radius = (field ? 235 : 150) * s.view.k;
     const glow = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, radius);
-    glow.addColorStop(0, s.theme.region);
+    glow.addColorStop(0, field ? withAlpha(p.node.color, 0.105) : s.theme.region);
+    glow.addColorStop(0.45, field ? withAlpha(p.node.color, 0.045) : s.theme.region);
     glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.globalAlpha = p.alpha * (s.focus ? 0.5 : 1);
     ctx.fillStyle = glow;
@@ -247,8 +249,8 @@ function drawLinks(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<stri
         break;
       case 'paper-cites':
         color = theme.edge;
-        alpha *= 0.5;
-        width = 0.7;
+        alpha *= 0.7;
+        width = 0.8;
         break;
       case 'source-paper':
         color = theme.edgeStrong;
@@ -269,15 +271,31 @@ function drawLinks(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<stri
     ctx.setLineDash(link.kind === 'domain-future' ? [2, 4] : []);
     ctx.beginPath();
     ctx.moveTo(a.sx, a.sy);
-    if (curved.has(link.kind)) {
+    if (curved.has(link.kind) || link.kind === 'paper-cites') {
       const mx = (a.sx + b.sx) / 2;
       const my = (a.sy + b.sy) / 2;
       const dx = b.sx - a.sx;
       const dy = b.sy - a.sy;
-      const bend = 0.16;
+      const bend =
+        link.kind === 'paper-cites' ? (hash01(a.node.id + b.node.id) - 0.5) * 0.22 : 0.16;
       ctx.quadraticCurveTo(mx - dy * bend, my + dx * bend, b.sx, b.sy);
     } else ctx.lineTo(b.sx, b.sy);
     ctx.stroke();
+    if (touchesFocus && link.kind === 'paper-cites') {
+      // Direction points from the citing paper to its reference. Only the inspected
+      // neighbourhood gets arrows, keeping the overview free of visual clutter.
+      const bend = (hash01(a.node.id + b.node.id) - 0.5) * 0.22;
+      const cx = (a.sx + b.sx) / 2 - (b.sy - a.sy) * bend;
+      const cy = (a.sy + b.sy) / 2 + (b.sx - a.sx) * bend;
+      const angle = Math.atan2(b.sy - cy, b.sx - cx);
+      const x = b.sx - Math.cos(angle) * (b.r + 4);
+      const y = b.sy - Math.sin(angle) * (b.r + 4);
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(angle - 0.45) * 5, y - Math.sin(angle - 0.45) * 5);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x - Math.cos(angle + 0.45) * 5, y - Math.sin(angle + 0.45) * 5);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -311,6 +329,15 @@ function drawNode(ctx: CanvasRenderingContext2D, s: DrawState, p: Placed) {
     }
     case 'paper': {
       const seed = node.paper?.seed;
+      if (seed || hovered) {
+        const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 3.5);
+        glow.addColorStop(0, withAlpha(node.color, hovered ? 0.4 : 0.18));
+        glow.addColorStop(1, withAlpha(node.color, 0));
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r * 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.globalAlpha = p.alpha * (seed || hovered ? 0.95 : 0.62);
       ctx.fillStyle = node.color;
       ctx.beginPath();
@@ -495,6 +522,13 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<str
   }
   const candidates: Candidate[] = [];
   const f = s.fontFamily;
+  const landmarks = new Map<string, AtlasNode>();
+  for (const { node } of placed.values()) {
+    if (!node.paper) continue;
+    const prior = landmarks.get(node.paper.fieldId);
+    if (!prior || node.paper.citedBy > (prior.paper?.citedBy ?? 0))
+      landmarks.set(node.paper.fieldId, node);
+  }
   // Zoomed far out (small screens), labels shrink a little so the clusters stay legible.
   const small = k < 0.62;
   for (const p of placed.values()) {
@@ -506,6 +540,7 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<str
     const near = !!s.focus && !!s.neighbours?.has(node.id);
     switch (node.kind) {
       case 'domain':
+        if (k < 0.85 && !isFocus) break;
         candidates.push({
           p,
           priority: 80,
@@ -521,7 +556,7 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<str
           p,
           priority: isFocus ? 100 : 90,
           text: node.label,
-          font: `600 ${small ? 12 : 13}px ${f}`,
+          font: `480 ${small ? 16 : 21}px 'Source Serif 4 Variable', Georgia, serif`,
           color: theme.label,
           below: true,
           spacing: 0,
@@ -546,11 +581,13 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<str
             : node.kind === 'source'
               ? k >= 2.1
               : k >= 1.55;
-        if (isFocus || near || zoomed)
+        const landmark =
+          node.paper && landmarks.get(node.paper.fieldId)?.id === node.id && k >= 0.85;
+        if (isFocus || near || zoomed || landmark)
           candidates.push({
             p,
-            priority: isFocus ? 100 : near ? 60 : node.kind === 'task' ? 40 : 30,
-            text: isFocus ? truncate(node.label, 64) : truncate(node.label, 38),
+            priority: isFocus ? 100 : near ? 60 : landmark ? 45 : node.kind === 'task' ? 40 : 30,
+            text: isFocus ? truncate(node.label, 64) : truncate(node.label, landmark ? 48 : 38),
             font: `${isFocus ? 600 : 500} 11.5px ${f}`,
             color: isFocus ? theme.label : theme.label2,
             below: true,
@@ -580,7 +617,7 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: DrawState, placed: Map<str
     ctx.font = c.font;
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${c.spacing}px`;
     const width = ctx.measureText(c.text).width;
-    const height = 14;
+    const height = c.p.node.kind === 'field' ? 26 : 14;
     const { sx, sy, r } = c.p;
     const offset = c.p.node.kind === 'field' ? r + 17 : r + 11;
     const side = r + (c.p.node.kind === 'field' ? 14 : 8) + width / 2 + 3;

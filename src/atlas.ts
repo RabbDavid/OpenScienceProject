@@ -121,6 +121,22 @@ export const domainOf = (field: Field): DomainId => {
   return (DOMAINS.find((d) => d.id === head)?.id ?? 'methods') as DomainId;
 };
 
+export const fieldIdOf = (node: AtlasNode) =>
+  node.field?.id ??
+  node.paper?.fieldId ??
+  node.task?.fieldId ??
+  node.source?.fieldId ??
+  node.contribution?.fieldId;
+
+/** Composition anchors organise fields; their distance has no scientific meaning. */
+export const researchAnchor = (node: AtlasNode): [number, number] => {
+  const field = fieldIdOf(node);
+  if (field === 'batteries') return [-110, -150];
+  if (field === 'solar') return [-125, 175];
+  if (field === 'reproducibility') return [310, 20];
+  return anchorOf(node.domain);
+};
+
 /** Contributions that belong on the map: rejected work is left in the review record only. */
 export const mappedContribution = (c: Contribution) => c.status !== 'rejected';
 

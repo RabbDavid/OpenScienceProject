@@ -294,15 +294,18 @@ export function App() {
         Skip to content
       </a>
       <aside className={`sidebar ${menuOpen ? 'is-open' : ''}`} id="sidebar">
-        <a
-          className="brand"
-          href="#overview"
-          onClick={linkTo('overview')}
-          aria-label="OpenScience Commons overview"
-        >
-          <Mark size={22} />
-          OpenScience
-        </a>
+        <div className="brand-group">
+          <a
+            className="brand"
+            href="#overview"
+            onClick={linkTo('overview')}
+            aria-label="OpenScience Commons overview"
+          >
+            <Mark size={26} />
+            OpenScience
+          </a>
+          <p className="brand-motto">Built for collective progress</p>
+        </div>
         <nav className="side-nav" aria-label="Main navigation">
           {nav.map(({ id, label, icon: Icon }) => {
             const count =
@@ -329,7 +332,7 @@ export function App() {
           })}
         </nav>
         {data && (
-          <nav className="side-nav" aria-label="Fields">
+          <nav className="side-nav side-fields" aria-label="Fields">
             <h2 className="side-heading">Fields</h2>
             {data.fields.map((f) => (
               <a
@@ -378,7 +381,7 @@ export function App() {
       </aside>
       {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />}
       <div className="content">
-        <header className="topbar">
+        <header className={`topbar ${route.view === 'overview' || atlasView ? 'theme-dark' : ''}`}>
           <button
             className="icon-btn menu-btn"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -467,9 +470,7 @@ export function App() {
               <div className="intro intro-compact">
                 <h1>Knowledge map</h1>
                 <p className="intro-pitch">
-                  {data.papers.length} published papers and the citations between them, with the
-                  open questions and the sources they start from. Larger dots are more cited; ringed
-                  dots are landmark papers. Position is a layout aid, not a measure of similarity.
+                  {data.papers.length} published papers · {data.tasks.length} research questions
                 </p>
               </div>
             </Atlas>
@@ -479,11 +480,7 @@ export function App() {
                 <>
                   <PageHeader
                     title={selectedField ? selectedField.name : 'Open questions'}
-                    description={
-                      selectedField
-                        ? selectedField.description
-                        : 'Bounded research questions, each grounded in real sources. Pick one your agent can help answer. Every answer is reviewed before it counts.'
-                    }
+                    description={selectedField ? selectedField.description : undefined}
                   />
                   {selectedField && (
                     <div
@@ -577,10 +574,7 @@ export function App() {
               )}
               {route.view === 'library' && (
                 <>
-                  <PageHeader
-                    title="Sources"
-                    description="A small, curated index of external papers, datasets, documentation, and code. Read the originals. Keep their limits attached."
-                  />
+                  <PageHeader title="Sources" />
                   <div className="toolbar">
                     {fieldFilter('library', 'All sources')}
                     <div className="toolbar-end">

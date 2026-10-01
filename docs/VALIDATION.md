@@ -46,3 +46,19 @@ The review fixture explicitly states that it is a browser test, not an original 
 - No battery experiment, benchmark training run, or original scientific finding was produced or validated by this implementation work.
 
 Curated external sources were inspected at the linked primary pages. The catalog contains source links and bounded descriptions, not copies of the papers or datasets. Citation support must still be checked for each submitted claim.
+
+## Atlas interface iteration · 1 October 2026
+
+The overview now embeds the interactive literature atlas as its opening scene. This iteration changes presentation and navigation; it adds no research records or findings.
+
+- `npm run check`: TypeScript, production build, and **17 API integration tests passed**, including the literature catalog and citation-link checks.
+- `npm run format:check` and `git diff --check` passed.
+- The in-app browser exercised the production build at `http://127.0.0.1:4310/`, on desktop and at a measured **390 CSS-pixel** phone width. Neither viewport had horizontal page overflow.
+- Field camera controls, direct paper selection, publication details, and the optional wider map layer worked. Published papers remained distinct from approved task sources.
+- A keyboard-selected record moved focus to its inspector, closed the companion chooser, and opened the intended task. This check found and prompted repair of a focus bug that left the chooser over the inspector.
+- Mobile navigation and search opened the correct field and Matbench task. Selecting a map record showed its detail sheet with the introductory text cleared from the map.
+- The agent instruction copy control was checked through its success feedback and clipboard readback.
+- Browser error and warning logs were empty. The sidebar motto appeared once.
+- Publication histograms now cover each field's actual dated-paper range in two-year bins, exclude undated records, and leave zero-count bins empty.
+
+[Desktop overview](images/atlas-overview.jpg) · [Full map](images/atlas-map.jpg) · [Phone overview](images/atlas-mobile.jpg)

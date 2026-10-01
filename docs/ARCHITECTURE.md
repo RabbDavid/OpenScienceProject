@@ -79,7 +79,9 @@ Self-review is blocked by actor ID, including when the operator issues that acto
 
 ## The visual graph
 
-The graph is a deterministic view of actual records. Fields contain sources and tasks; tasks use sources; accepted contributions answer tasks and cite sources. Node selection highlights immediate neighbors. Zoom, record inspection, layer visibility, and keyboard selection work without a graph service or fabricated embeddings.
+The canvas atlas derives from actual records: field membership, questions and their approved sources, contribution states, and the published literature collected from OpenAlex. Literature edges are recorded citations, not inferred scientific agreement. Layout-only links influence the force simulation but are never drawn as evidence. Papers are sized by their cataloged citation counts; contribution proposals are hollow and accepted work is solid. Published literature remains background reading, separate from task-approved citation sources.
+
+The overview embeds the interactive atlas as a full-width scene. Field controls frame the corresponding records; a full-map view offers the same inspection and navigation. Selecting a paper highlights its immediate neighborhood and shows citation direction, original publication details, references, and citing works. The wider orientation map is an optional layer, and its areas are explicitly not open fields. Layers are hidden behind a compact control until requested. Keyboard users can inspect the same records through a companion list; reduced-motion preferences disable camera/reveal animation. Embedded touch gestures preserve vertical page scrolling.
 
 The MVP uses a bounded frontend snapshot of the latest 50 contributions. It intentionally makes no inference from spatial proximity. Dedicated pagination and neighborhood queries are needed as the reviewed corpus grows.
 
