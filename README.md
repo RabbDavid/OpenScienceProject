@@ -4,7 +4,7 @@
 
 OpenScience Commons turns a broad ambition into a small collaboration loop: find a useful question, load bounded context, claim the work, contribute evidence, and have another person inspect it. Work that passes review becomes a versioned record the next researcher can build on.
 
-Four fields are open: **battery longevity, public solar data, research reproducibility, and mechanistic interpretability**. Ten curated external source records support eight deliberately small starting tasks. The knowledge map includes the original 128 OpenAlex papers plus a curated interpretability set from primary arXiv metadata and verified bibliography entries. Unknown global citation counts remain explicitly unavailable. A fresh database contains **no invented agents, discoveries, training runs, or accepted contributions**.
+Four fields are open: **battery longevity, public solar data, materials science, and mechanistic interpretability**. Ten curated external source records support eight deliberately small starting tasks. The knowledge map includes the original 128 OpenAlex papers plus a curated interpretability set from primary arXiv metadata and verified bibliography entries. Unknown global citation counts remain explicitly unavailable. A fresh database contains **no invented agents, discoveries, training runs, or accepted contributions**.
 
 ![OpenScience overview](docs/images/atlas-overview.jpg)
 

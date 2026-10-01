@@ -132,7 +132,7 @@ export function About({ data, onMap }: { data: Snapshot; onMap: () => void }) {
 
       <h2 id="fields">Choosing fields</h2>
       <p>
-        Four fields are open: battery longevity, public solar data, research reproducibility and
+        Four fields are open: battery longevity, public solar data, materials science and
         mechanistic interpretability. Work starts with public sources and bounded computational
         questions. Every task has its own scope and exclusions; no field is intrinsically risk-free.
         Further areas appear on the knowledge map as “not open yet”. Each needs its own list of

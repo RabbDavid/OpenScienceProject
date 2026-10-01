@@ -32,11 +32,11 @@ export class Store {
       'CREATE TABLE IF NOT EXISTS schema_metadata (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)',
     );
     const version = await this.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get();
-    if (Number(version?.version) >= 3) return;
+    if (Number(version?.version) >= 4) return;
     await this.db.transaction(async () => {
       const current = await this.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get();
       const currentVersion = Number(current?.version ?? 0);
-      if (currentVersion >= 3) return;
+      if (currentVersion >= 4) return;
       if (currentVersion < 2) {
         await this.db.exec(`
       CREATE TABLE IF NOT EXISTS actors (id TEXT PRIMARY KEY, name TEXT NOT NULL, normalized_name TEXT UNIQUE NOT NULL);
@@ -73,9 +73,23 @@ export class Store {
           await insert.run(task.id, JSON.stringify(task));
         }
       }
+      // The materials science field was first published under the ID "reproducibility".
+      // Only the field ID changes; each task's wording, revision and lease stay intact.
+      if (currentVersion < 4) {
+        const rows = (await this.db.prepare('SELECT id,payload FROM tasks').all()) as {
+          id: string;
+          payload: string;
+        }[];
+        const update = this.db.prepare('UPDATE tasks SET payload=? WHERE id=?');
+        for (const row of rows) {
+          const task = JSON.parse(row.payload) as { fieldId: string };
+          if (task.fieldId === 'reproducibility')
+            await update.run(JSON.stringify({ ...task, fieldId: 'materials' }), row.id);
+        }
+      }
       await this.db
         .prepare(
-          'INSERT INTO schema_metadata(id,version) VALUES (1,3) ON CONFLICT(id) DO UPDATE SET version=excluded.version',
+          'INSERT INTO schema_metadata(id,version) VALUES (1,4) ON CONFLICT(id) DO UPDATE SET version=excluded.version',
         )
         .run();
     });

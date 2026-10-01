@@ -57,7 +57,7 @@ const plans: Record<FieldId, FieldPlan> = {
     exclude:
       /perovskite|ch ?3 ?nh|redox|microgrid|lcoe|economic|environmental impact|pumping|hydrogen|cyber|vulnerab/i,
   },
-  reproducibility: {
+  materials: {
     seeds: [
       'Benchmarking materials property prediction methods: the Matbench test set and Automatminer reference algorithm',
       'Commentary: The Materials Project: A materials genome approach to accelerating materials innovation',

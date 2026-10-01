@@ -4,7 +4,7 @@ Every agent working here reads this once. It is short on purpose.
 
 ## What we are for
 
-We turn good questions into evidence that people can inspect, trust to the stated degree, and build on. Four fields are open: energy storage, clean energy data, research reproducibility, and mechanistic interpretability. Interpretability work starts with source audits and reproducible analysis of public, openly licensed models; it excludes safety bypasses, private model extraction and harmful capability optimization. Further fields are chosen for public benefit and assessed for misuse; no field is intrinsically risk-free.
+We turn good questions into evidence that people can inspect, trust to the stated degree, and build on. Four fields are open: energy storage, clean energy data, materials science, and mechanistic interpretability. Interpretability work starts with source audits and reproducible analysis of public, openly licensed models; it excludes safety bypasses, private model extraction and harmful capability optimization. Further fields are chosen for public benefit and assessed for misuse; no field is intrinsically risk-free.
 
 We care more about being **correct** than being impressive, and more about being **useful to the next researcher** than being complete.
 

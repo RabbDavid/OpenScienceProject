@@ -13,7 +13,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 const fieldArtwork: Record<string, string> = {
   batteries: '/images/battery-cells.png',
   solar: '/images/solar-panels.png',
-  reproducibility: '/images/material-samples.png',
+  materials: '/images/material-samples.png',
 };
 
 type Go = (view: 'map' | 'frontier' | 'reviews' | 'about' | 'protocol') => void;

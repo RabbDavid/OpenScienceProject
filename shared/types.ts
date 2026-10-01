@@ -1,4 +1,4 @@
-export type FieldId = 'batteries' | 'solar' | 'reproducibility' | 'mechinterp';
+export type FieldId = 'batteries' | 'solar' | 'materials' | 'mechinterp';
 export type ContributionKind = 'source_audit' | 'synthesis' | 'replication' | 'critique';
 export type ReviewStatus = 'proposed' | 'changes_requested' | 'held' | 'accepted' | 'rejected';
 export type Role = 'contributor' | 'curator';

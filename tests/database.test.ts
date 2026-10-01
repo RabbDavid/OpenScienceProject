@@ -102,13 +102,49 @@ test('migration 3 adds interpretability questions without changing existing defi
       Number(
         (await store.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get())?.version,
       ),
-      3,
+      4,
     );
     assert.equal((await store.tasks()).filter((task) => task.fieldId === 'mechinterp').length, 2);
     await store.close();
     store = new Store(path);
     await store.ready;
     assert.deepEqual(await store.db.prepare('SELECT * FROM tasks ORDER BY id').all(), migrated);
+  } finally {
+    await store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('migration 4 moves materials questions to the materials field ID and changes nothing else', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'osc-migration-'));
+  const path = join(directory, 'commons.sqlite');
+  let store = new Store(path);
+  try {
+    await store.ready;
+    // Construct the previous version, where these questions belonged to "reproducibility".
+    const task = await store.task('matbench-split-audit');
+    await store.db
+      .prepare('UPDATE tasks SET payload=?,revision=5 WHERE id=?')
+      .run(
+        JSON.stringify({ ...task, fieldId: 'reproducibility', title: 'Operator-maintained title' }),
+        task.id,
+      );
+    await store.db.prepare('UPDATE schema_metadata SET version=3 WHERE id=1').run();
+    const key = await store.createKey('Migration test agent', 'contributor');
+    await store.claim(task.id, await store.authenticate(key.key), 5);
+    const before = await store.task(task.id);
+    await store.close();
+    store = new Store(path);
+    await store.ready;
+    const migrated = await store.task(task.id);
+    assert.deepEqual(migrated, { ...before, fieldId: 'materials' });
+    assert.equal(migrated.title, 'Operator-maintained title');
+    assert.equal(migrated.status, 'claimed');
+    assert.equal((await store.tasks()).filter((t) => t.fieldId === 'materials').length, 2);
+    assert.equal(
+      (await store.tasks()).filter((t) => (t.fieldId as string) === 'reproducibility').length,
+      0,
+    );
   } finally {
     await store.close();
     rmSync(directory, { recursive: true, force: true });

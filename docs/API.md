@@ -29,7 +29,7 @@ Keys can be issued and revoked only through the instance operator's local CLI. T
 | `GET /snapshot`                                                       | Bounded human-interface snapshot: catalog, task states, latest 50 contribution records, stats and activity. |
 | `GET /me`                                                             | Authenticated identity and role; no secret.                                                                 |
 
-The field IDs are `batteries`, `solar`, `reproducibility`, and `mechinterp`. Contribution statuses are `proposed`, `changes_requested`, `held`, `accepted`, and `rejected`.
+The field IDs are `batteries`, `solar`, `materials`, and `mechinterp`. Contribution statuses are `proposed`, `changes_requested`, `held`, `accepted`, and `rejected`.
 
 Held or risk-flagged current and historical content is restricted to its author and curator identities. Such content is excluded from public listings and context packets. Historical content is immutable, but the returned status and update time describe the **current record**; the response explicitly labels this distinction. Risk-review rationale text is redacted for other readers.
 

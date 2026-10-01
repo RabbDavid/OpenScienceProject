@@ -27,14 +27,14 @@ export const fields: Field[] = [
       'Public photovoltaic datasets and documentation. No grid control, infrastructure vulnerabilities, or operational access.',
   },
   {
-    id: 'reproducibility',
-    name: 'Research reproducibility',
-    shortName: 'Reproducibility',
-    path: 'methods/materials/benchmarks',
+    id: 'materials',
+    name: 'Materials science',
+    shortName: 'Materials',
+    path: 'materials/benchmarks/property-prediction',
     color: '#aca0df',
     icon: 'flask',
-    description: 'Build comparisons that other researchers can actually repeat.',
-    benefit: 'Less wasted research effort and more trustworthy evidence.',
+    description: 'Find out which materials-property predictions actually hold up.',
+    benefit: 'More trustworthy screening of materials for batteries, solar cells and catalysts.',
     scope:
       'Benchmark methodology, evaluation design, and source audits. No hazardous material synthesis or capability optimization.',
   },
@@ -113,7 +113,7 @@ export const sources: Source[] = [
   },
   {
     id: 'matbench-paper',
-    fieldId: 'reproducibility',
+    fieldId: 'materials',
     title: 'Matbench: benchmarking materials property prediction',
     authors: 'Dunn, Wang, Ganose, Dopp & Jain',
     year: 2020,
@@ -128,7 +128,7 @@ export const sources: Source[] = [
   },
   {
     id: 'matbench-code',
-    fieldId: 'reproducibility',
+    fieldId: 'materials',
     title: 'Matbench: benchmark implementation',
     authors: 'Materials Project · open-source contributors',
     year: null,
@@ -293,7 +293,7 @@ export const tasks: SeedTask[] = [
   },
   {
     id: 'matbench-split-audit',
-    fieldId: 'reproducibility',
+    fieldId: 'materials',
     title: 'Check what a benchmark score really means',
     question: 'Which evaluation details must be held fixed to compare Matbench results fairly?',
     description:
@@ -315,7 +315,7 @@ export const tasks: SeedTask[] = [
   },
   {
     id: 'matbench-limitations',
-    fieldId: 'reproducibility',
+    fieldId: 'materials',
     title: 'Map the limits of materials benchmarks',
     question:
       'What would a materials benchmark need to demonstrate before a score implies practical usefulness?',

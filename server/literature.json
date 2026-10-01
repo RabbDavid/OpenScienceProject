@@ -832,7 +832,7 @@
     },
     {
       "id": "W1992985800",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Commentary: The Materials Project: A materials genome approach to accelerating materials innovation",
       "authors": "Jain, Ong, Hautier, et al.",
       "year": 2013,
@@ -846,7 +846,7 @@
     },
     {
       "id": "W2884430236",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Machine learning for molecular and materials science",
       "authors": "Butler, Davies, Cartwright, et al.",
       "year": 2018,
@@ -871,7 +871,7 @@
     },
     {
       "id": "W2015197254",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis",
       "authors": "Ong, Richards, Jain, et al.",
       "year": 2012,
@@ -885,7 +885,7 @@
     },
     {
       "id": "W2594183968",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "MoleculeNet: a benchmark for molecular machine learning",
       "authors": "Wu, Ramsundar, Feinberg, et al.",
       "year": 2017,
@@ -899,7 +899,7 @@
     },
     {
       "id": "W2766856748",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Crystal Graph Convolutional Neural Networks for an Accurate and Interpretable Prediction of Material Properties",
       "authors": "Xie, Grossman",
       "year": 2018,
@@ -922,7 +922,7 @@
     },
     {
       "id": "W2968923792",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Recent advances and applications of machine learning in solid-state materials science",
       "authors": "Schmidt, Marques, Botti, et al.",
       "year": 2019,
@@ -956,7 +956,7 @@
     },
     {
       "id": "W1976492731",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Materials Design and Discovery with High-Throughput Density Functional Theory: The Open Quantum Materials Database (OQMD)",
       "authors": "Saal, Kirklin, Aykol, et al.",
       "year": 2013,
@@ -970,7 +970,7 @@
     },
     {
       "id": "W2278970271",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "The Open Quantum Materials Database (OQMD): assessing the accuracy of DFT formation energies",
       "authors": "Kirklin, Saal, Meredig, et al.",
       "year": 2015,
@@ -984,7 +984,7 @@
     },
     {
       "id": "W2104489082",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Fast and Accurate Modeling of Molecular Atomization Energies with Machine Learning",
       "authors": "Rupp, Tkatchenko, Müller, et al.",
       "year": 2012,
@@ -998,7 +998,7 @@
     },
     {
       "id": "W2963784900",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Machine learning in materials informatics: recent applications and prospects",
       "authors": "Ramprasad, Batra, Pilania, et al.",
       "year": 2017,
@@ -1012,7 +1012,7 @@
     },
     {
       "id": "W2464725281",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "A general-purpose machine learning framework for predicting properties of inorganic materials",
       "authors": "Ward, Agrawal, Choudhary, et al.",
       "year": 2016,
@@ -1034,7 +1034,7 @@
     },
     {
       "id": "W2949095042",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Graph Networks as a Universal Machine Learning Framework for Molecules and Crystals",
       "authors": "Chen, Ye, Zuo, et al.",
       "year": 2019,
@@ -1065,7 +1065,7 @@
     },
     {
       "id": "W2134329894",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "AFLOW: An automatic framework for high-throughput materials discovery",
       "authors": "Curtarolo, Setyawan, Hart, et al.",
       "year": 2012,
@@ -1079,7 +1079,7 @@
     },
     {
       "id": "W2527189750",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Quantum-chemical insights from deep tensor neural networks",
       "authors": "Schütt, Arbabzadah, Chmiela, et al.",
       "year": 2017,
@@ -1093,7 +1093,7 @@
     },
     {
       "id": "W4389132751",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Scaling deep learning for materials discovery",
       "authors": "Merchant, Batzner, Schoenholz, et al.",
       "year": 2023,
@@ -1115,7 +1115,7 @@
     },
     {
       "id": "W3208687975",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Recent advances and applications of deep learning methods in materials science",
       "authors": "Choudhary, DeCost, Chen, et al.",
       "year": 2022,
@@ -1153,7 +1153,7 @@
     },
     {
       "id": "W4385576721",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Leakage and the reproducibility crisis in machine-learning-based science",
       "authors": "Kapoor, Narayanan",
       "year": 2023,
@@ -1167,7 +1167,7 @@
     },
     {
       "id": "W2804431384",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Matminer: An open source toolkit for materials data mining",
       "authors": "Ward, Dunn, Faghaninia, et al.",
       "year": 2018,
@@ -1198,7 +1198,7 @@
     },
     {
       "id": "W2551323975",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "The thermodynamic scale of inorganic crystalline metastability",
       "authors": "Sun, Dacek, Ong, et al.",
       "year": 2016,
@@ -1212,7 +1212,7 @@
     },
     {
       "id": "W4310135808",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "A universal graph deep learning interatomic potential for the periodic table",
       "authors": "Chen, Ong",
       "year": 2022,
@@ -1235,7 +1235,7 @@
     },
     {
       "id": "W2164524421",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Big Data of Materials Science: Critical Role of the Descriptor",
       "authors": "Ghiringhelli, Vybíral, Levchenko, et al.",
       "year": 2015,
@@ -1249,7 +1249,7 @@
     },
     {
       "id": "W4386740800",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "CHGNet as a pretrained universal neural network potential for charge-informed atomistic modelling",
       "authors": "Deng, Zhong, Jun, et al.",
       "year": 2023,
@@ -1263,7 +1263,7 @@
     },
     {
       "id": "W2917193084",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "From DFT to machine learning: recent approaches to materials science–a review",
       "authors": "Schleder, Padilha, Acosta, et al.",
       "year": 2019,
@@ -1295,7 +1295,7 @@
     },
     {
       "id": "W4310273071",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Graph neural networks for materials science and chemistry",
       "authors": "Reiser, Neubert, Eberhard, et al.",
       "year": 2022,
@@ -1320,7 +1320,7 @@
     },
     {
       "id": "W2976720228",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "DScribe: Library of descriptors for machine learning in materials science",
       "authors": "Himanen, Jäger, Morooka, et al.",
       "year": 2019,
@@ -1351,7 +1351,7 @@
     },
     {
       "id": "W3212512279",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Atomistic Line Graph Neural Network for improved materials property predictions",
       "authors": "Choudhary, DeCost",
       "year": 2021,
@@ -1374,7 +1374,7 @@
     },
     {
       "id": "W2972219719",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Data‐Driven Materials Science: Status, Challenges, and Perspectives",
       "authors": "Himanen, Geurts, Foster, et al.",
       "year": 2019,
@@ -1405,7 +1405,7 @@
     },
     {
       "id": "W2753962198",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Prediction Errors of Molecular Machine Learning Models Lower than Hybrid DFT Error",
       "authors": "Faber, Hutchison, Huang, et al.",
       "year": 2017,
@@ -1419,7 +1419,7 @@
     },
     {
       "id": "W2509907061",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Universal fragment descriptors for predicting properties of inorganic crystals",
       "authors": "Isayev, Oses, Toher, et al.",
       "year": 2017,
@@ -1433,7 +1433,7 @@
     },
     {
       "id": "W3003769243",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "A Critical Review of Machine Learning of Energy Materials",
       "authors": "Chen, Zuo, Ye, et al.",
       "year": 2020,
@@ -1469,7 +1469,7 @@
     },
     {
       "id": "W1982598895",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Finding Nature’s Missing Ternary Oxide Compounds Using Machine Learning and Density Functional Theory",
       "authors": "Hautier, Fischer, Jain, et al.",
       "year": 2010,
@@ -1483,7 +1483,7 @@
     },
     {
       "id": "W2109939806",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "The Materials Application Programming Interface (API): A simple, flexible and efficient API for materials data based on REpresentational State Transfer (REST) principles",
       "authors": "Ong, Cholia, Jain, et al.",
       "year": 2014,
@@ -1497,7 +1497,7 @@
     },
     {
       "id": "W2034097448",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "How to represent crystal structures for machine learning: Towards fast prediction of electronic properties",
       "authors": "Schütt, Glawe, Brockherde, et al.",
       "year": 2014,
@@ -1511,7 +1511,7 @@
     },
     {
       "id": "W2159357141",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Crystal structure representations for machine learning models of formation energies",
       "authors": "Faber, Lindmaa, Lilienfeld, et al.",
       "year": 2015,
@@ -1525,7 +1525,7 @@
     },
     {
       "id": "W2734520197",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Including crystal structure attributes in machine learning models of formation energies via Voronoi tessellations",
       "authors": "Ward, Liu, Krishna, et al.",
       "year": 2017,
@@ -1549,7 +1549,7 @@
     },
     {
       "id": "W2978707075",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Predicting materials properties without crystal structure: deep representation learning from stoichiometry",
       "authors": "Goodall, Lee",
       "year": 2020,
@@ -1574,7 +1574,7 @@
     },
     {
       "id": "W1865667476",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Machine Learning Energies of 2 Million Elpasolite (ABC2D6) Crystals",
       "authors": "Faber, Lindmaa, Lilienfeld, et al.",
       "year": 2016,
@@ -1595,7 +1595,7 @@
     },
     {
       "id": "W3023937119",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Benchmarking materials property prediction methods: the Matbench test set and Automatminer reference algorithm",
       "authors": "Dunn, Wang, Ganose, et al.",
       "year": 2020,
@@ -1620,7 +1620,7 @@
     },
     {
       "id": "W3041359432",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "A critical examination of compound stability predictions from machine-learned formation energies",
       "authors": "Bartel, Trewartha, Wang, et al.",
       "year": 2020,
@@ -1651,7 +1651,7 @@
     },
     {
       "id": "W3116783766",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Compositionally restricted attention-based network for materials property predictions",
       "authors": "Wang, Kauwe, Murdock, et al.",
       "year": 2021,
@@ -1679,7 +1679,7 @@
     },
     {
       "id": "W2803861156",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Machine learning with force-field-inspired descriptors for materials: Fast screening and mapping energy landscape",
       "authors": "Choudhary, DeCost, Tavazza",
       "year": 2018,
@@ -1704,7 +1704,7 @@
     },
     {
       "id": "W4411543224",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "A framework to evaluate machine learning crystal stability predictions",
       "authors": "Riebesell, Goodall, Benner, et al.",
       "year": 2025,
@@ -1737,7 +1737,7 @@
     },
     {
       "id": "W4362700002",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "A critical examination of robustness and generalizability of machine learning prediction of materials properties",
       "authors": "Li, DeCost, Choudhary, et al.",
       "year": 2023,
@@ -1769,7 +1769,7 @@
     },
     {
       "id": "W4366249648",
-      "fieldId": "reproducibility",
+      "fieldId": "materials",
       "title": "Representations of Materials for Machine Learning",
       "authors": "Damewood, Karaguesian, Lunger, et al.",
       "year": 2023,

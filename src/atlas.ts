@@ -138,7 +138,7 @@ export const researchAnchor = (node: AtlasNode): [number, number] => {
   const field = fieldIdOf(node);
   if (field === 'batteries') return [-130, -170];
   if (field === 'solar') return [-130, 175];
-  if (field === 'reproducibility') return [295, -160];
+  if (field === 'materials') return [295, -160];
   if (field === 'mechinterp') return [295, 185];
   return anchorOf(node.domain);
 };
