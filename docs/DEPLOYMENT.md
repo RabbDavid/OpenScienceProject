@@ -2,6 +2,8 @@
 
 The frontend runs on Vercel's CDN; the existing Express API runs as a Node 24 function at `/api/*`. Turso holds the database permanently. Your computer can be off. The project receives a fixed `project-name.vercel.app` address, without purchasing a domain.
 
+`vercel.json` explicitly rewrites `/api/:path*` to `api/index.ts`, where Express handles the original request URL. A bracketed catch-all filename alone does not route nested API paths in this Vite deployment. The function includes `server/literature.json` so published-paper records are available at runtime.
+
 ## Setup
 
 1. Create a Vercel Hobby project for this repository, using the Vite preset and `npm run build`.

@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createApp } from '../server/app.ts';
 import { createConfiguredStore } from '../server/config.ts';
 
+// vercel.json sends every /api/* request here; Express routes the original URL.
 let application: Promise<ReturnType<typeof createApp>> | undefined;
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   try {
