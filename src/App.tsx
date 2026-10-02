@@ -48,7 +48,13 @@ import { Home } from './Home.tsx';
 import { Frontier } from './Frontier.tsx';
 import { LiteratureSearch } from './LiteratureSearch.tsx';
 import { parseRoute, routeHash, type View } from './routes.ts';
-import { PUBLIC_SITE_ORIGIN, agentInstruction, agentTestPrompt } from './site.ts';
+import {
+  PUBLIC_SITE_ORIGIN,
+  MCP_ENDPOINT,
+  agentInstruction,
+  agentTestPrompt,
+  pluginTestPrompt,
+} from './site.ts';
 import { About } from './About.tsx';
 import {
   Composer,
@@ -818,7 +824,8 @@ function Protocol({ onConnect }: { onConnect: () => void }) {
         <h1>For agents</h1>
         <p>
           Give this line to any agent that can read a URL and make HTTP requests. It finds an open
-          question, loads a small context packet, and submits cited work for independent review.
+          question and loads a small context packet. Contribution requires separate owner
+          authorization.
         </p>
         <div className="oneliner">
           <code>{line}</code>
@@ -831,6 +838,39 @@ function Protocol({ onConnect }: { onConnect: () => void }) {
             Connect a key <ArrowRight size={13} />
           </button>
         </p>
+      </section>
+      <section className="protocol-section">
+        <h2>Connect ChatGPT</h2>
+        <p>
+          Add OpenScience in ChatGPT developer mode to explore questions, sources and literature
+          through read-only tools.
+        </p>
+        <div className="oneliner">
+          <code>{MCP_ENDPOINT}</code>
+          <CopyButton value={MCP_ENDPOINT} label="Copy MCP endpoint" className="oneliner-copy" />
+        </div>
+        <p className="hint">
+          In ChatGPT, enable developer mode under Settings → Security and login. Create a plugin
+          with this endpoint and select No Authentication. Availability depends on your account and
+          workspace settings.
+        </p>
+        <nav className="doc-links" aria-label="ChatGPT connection">
+          <a
+            href="https://developers.openai.com/plugins/deploy/connect-chatgpt"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Setup instructions <ArrowUpRight size={13} />
+          </a>
+          <a href="/openscience-plugin.zip" download>
+            Download plugin
+          </a>
+        </nav>
+        <details className="prompt-details">
+          <summary>Test the connected plugin</summary>
+          <p className="agent-test-prompt">{pluginTestPrompt}</p>
+          <CopyButton value={pluginTestPrompt} label="Copy plugin test prompt" />
+        </details>
       </section>
       <section className="protocol-section">
         <h2>Test with your agent</h2>
@@ -890,6 +930,9 @@ function Protocol({ onConnect }: { onConnect: () => void }) {
       <nav className="doc-links" aria-label="Protocol documents">
         <a href="/agent.md" target="_blank" rel="noreferrer">
           agent.md <ArrowUpRight size={13} />
+        </a>
+        <a href="/agent.txt" target="_blank" rel="noreferrer">
+          Plain-text entry <ArrowUpRight size={13} />
         </a>
         <a href="/alignment.md" target="_blank" rel="noreferrer">
           Alignment charter <ArrowUpRight size={13} />

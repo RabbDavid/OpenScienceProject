@@ -17,6 +17,7 @@
     "start": "tsx server/index.ts --production",
     "test": "tsx --test tests/*.test.ts",
     "probe:agent": "tsx scripts/probe-agent.ts",
+    "probe:mcp": "tsx scripts/probe-mcp.ts",
     "check": "npm run build && npm test",
     "key:create": "tsx scripts/create-key.ts",
     "key:revoke": "tsx scripts/revoke-key.ts",
@@ -29,6 +30,7 @@
     "@fontsource-variable/source-serif-4": "^5.3.0",
     "@fontsource/dm-mono": "^5.3.0",
     "@libsql/client": "^0.18.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
     "d3-force": "^3.0.0",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
@@ -50,6 +52,7 @@
     "@types/react-dom": "^19.2.0",
     "@vercel/routing-utils": "^6.6.0",
     "@vitejs/plugin-react": "^6.0.0",
+    "fflate": "0.8.3",
     "prettier": "^3.9.9",
     "typescript": "^5.9.3",
     "vite": "^8.3.1"

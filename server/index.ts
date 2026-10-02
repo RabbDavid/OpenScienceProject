@@ -10,6 +10,10 @@ const production = process.argv.includes('--production');
 const store = createConfiguredStore();
 await store.ready;
 const app = createApp(store, { development: !production });
+// Browser readers may reject text/markdown. Both entry points carry the same maintained text.
+app.get(['/agent.md', '/agent.txt'], (_req, res) =>
+  res.type('text/plain').sendFile(resolve('public/agent.md')),
+);
 if (production) {
   const dist = resolve('dist');
   if (!existsSync(resolve(dist, 'index.html')))
@@ -17,6 +21,11 @@ if (production) {
   app.use(express.static(dist));
   app.get('/{*path}', (_req, res) => res.sendFile(resolve(dist, 'index.html')));
 } else {
+  const { pluginArchive } = await import('../scripts/plugin-package.ts');
+  const archive = Buffer.from(pluginArchive());
+  app.get('/openscience-plugin.zip', (_req, res) =>
+    res.type('application/zip').attachment('openscience-plugin.zip').send(archive),
+  );
   const { createServer } = await import('vite');
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'spa' });
   app.use(vite.middlewares);

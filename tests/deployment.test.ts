@@ -87,6 +87,20 @@ test('emitted JavaScript API starts without a TypeScript loader and serves neste
         assert.equal(context.status, 200);
         const packet = await context.json();
         assert.equal(packet.budget.maxBytes, 4096);
+        const mcp = await fetch(base + '/api/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
+          body: JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'deployment-test',version:'1.0'}}})
+        });
+        assert.equal(mcp.status, 200);
+        assert.equal((await mcp.json()).result.serverInfo.name, 'openscience');
+        const tool = await fetch(base + '/api/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
+          body: JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'get_research_overview',arguments:{}}})
+        });
+        assert.equal(tool.status,200);
+        assert.equal(JSON.parse((await tool.json()).result.content[0].text).fields.length,4);
         const unique = await fetch(base + '/api/v1/snapshot?nonce=unique');
         assert.equal(unique.status, 400);
         assert.equal((await unique.json()).error.code, 'invalid_query');

@@ -8,6 +8,7 @@ import { contextPacket } from './context.ts';
 import { requestAdmission } from './admission.ts';
 import { paperMatches } from '../shared/literature.ts';
 import type { Contribution } from '../shared/types.ts';
+import { handleResearchMcp } from './mcp.ts';
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const contentSchema = z
   .object({
@@ -164,6 +165,12 @@ export function createApp(
     next();
   });
   app.use('/api', express.json({ limit: '40kb', type: 'application/json' }));
+  app.all('/api/mcp', async (req, res) => {
+    // HTTP POST is a read-only MCP transport, not permission to mutate research records.
+    // Private API mode also guards initialization, resource reads and tool calls over POST.
+    if (privateReads || req.headers.authorization) await authenticate(req);
+    await handleResearchMcp(req, res, store, { development: options.development, privateReads });
+  });
   const cached = (req: Request, res: Response, value: unknown) => {
     const data = JSON.stringify(value);
     const etag = `"${hash(data)}"`;

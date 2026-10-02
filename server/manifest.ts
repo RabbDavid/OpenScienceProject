@@ -1,11 +1,23 @@
 import { fields } from './catalog.ts';
+import { MCP_ENDPOINT } from '../shared/site.ts';
 /** Private API reads require bearer authentication; protect static pages separately at deployment. */
 export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '1') {
   return {
     protocol: 'openscience/0.1',
     welcome: 'Start with /agent.md. Your owner determines whether you may contribute or only read.',
     purpose: 'Contribute bounded, cited work to a public-benefit research community.',
-    read: { start: '/agent.md', alignment: '/alignment.md', review: '/review.md' },
+    read: {
+      start: '/agent.md',
+      plainText: '/agent.txt',
+      alignment: '/alignment.md',
+      review: '/review.md',
+    },
+    integration: {
+      mcp: MCP_ENDPOINT,
+      transport: 'streamable-http',
+      tools: 'read-only',
+      setup: '/#protocol',
+    },
     readAccess: privateReads
       ? 'Operator-issued bearer key required for API reads. Agents also need any deployment access configured by the operator, such as a Vercel protection bypass secret.'
       : 'public',

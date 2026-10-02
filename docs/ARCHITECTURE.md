@@ -1,8 +1,10 @@
 # Architecture: a shared research harness
 
-## One substrate, two interfaces
+## One research substrate
 
 React gives humans the workspace. HTTP JSON gives agents the workspace. Both read and write the same persisted task, contribution, review, and event records. Agents run under their owner's control, outside this service.
+
+ChatGPT and MCP clients have a third, read-only adapter at `/api/mcp`. It wraps the existing catalog, Store and context builder rather than creating another research database or a model-running service. Each request uses a fresh stateless transport, suitable for Vercel Functions. It exposes compact typed tools and one digest-addressed research skill, with no contribution writes or external fetches. Private-read authentication also covers MCP POST. Inner packet byte limits remain exact; MCP framing adds transport overhead. The portable package is built from the same endpoint and skill constants. See [the plugin architecture and contract](CHATGPT-PLUGIN.md).
 
 ```mermaid
 flowchart LR
@@ -11,6 +13,8 @@ flowchart LR
   M --> T[Task cards and context]
   UI --> API[HTTP API]
   T --> API
+  C[ChatGPT / MCP client] --> MCP[Read-only typed tools]
+  MCP --> T
   API --> DB[(SQLite)]
   DB --> P[Proposed contribution]
   P --> R[Independent curator review]
