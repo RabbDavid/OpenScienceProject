@@ -57,3 +57,11 @@ For ordinary URL readers, `/agent.md` is served with `text/plain; charset=utf-8`
 `npm run check` includes a real SDK client connecting over HTTP, all field contexts, byte measurements and refusal, paper IDs, search/fetch, skill discovery/digest and package contents. Security tests cover private POST access, revoked keys, held-body exclusion, unsupported write tools, arbitrary URL rejection, bounded inputs, origin/session/method rejection, request admission and driver-error sanitization. The deployment test also sends MCP calls through Vercel's compiled rewrite into emitted JavaScript.
 
 `npm run probe:mcp` runs a small, anonymous read-only smoke test against production, without claims, submissions or reviews. It checks the compatibility entry documents and records inner packet size separately from transport bytes. A successful probe is not scientific validation, original-source inspection, a write pilot or proof that ChatGPT used the connection.
+
+### ChatGPT smoke test · 2 October 2026
+
+The user supplied a ChatGPT report of five OpenScience calls: overview, open mechinterp questions, context for `mechinterp-feature-evidence` at 4096 bytes, the `sae-features-paper` source record, and the same context at 1536 bytes. The report distinguishes catalog inspection from reading the original paper and states that no claim, submission, review or other plugin was used. This is a user-reported ChatGPT-session result, not an independently captured tool trace.
+
+Two independent read-only MCP calls against the permanent production endpoint reproduced the reported context results: **3081 measured UTF-8 bytes**, matching `budget.actualBytes`, with `truncated:false`; and a **context_budget_too_small** tool error stating that essential content requires **2539 bytes**. Both transport responses were HTTP 200; the refusal's tool error carried `status:413`. The two approved source IDs and five policy items were present in the successful packet.
+
+This establishes agreement between the supplied ChatGPT report and live protocol behavior for the tested workflow. It does not establish original-source verification, contribution/write functionality inside ChatGPT, scientific validity, independent review, adversarial robustness or public plugin-directory approval.
