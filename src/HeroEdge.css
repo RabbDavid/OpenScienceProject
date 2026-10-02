@@ -1,0 +1,57 @@
+.hero-edge {
+  --edge-paper: var(--bg, #f7f8f3);
+  position: absolute;
+  inset: auto 0 -1px;
+  z-index: 2;
+  height: 96px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero-edge svg {
+  position: absolute;
+  inset: 0 auto 0 50%;
+  display: block;
+  width: max(100%, 960px);
+  height: 100%;
+  transform: translateX(-50%);
+  overflow: visible;
+}
+
+.hero-edge-cell {
+  fill: var(--edge-paper);
+  opacity: var(--edge-opacity);
+}
+
+.hero-edge-cell.is-tinted {
+  fill: color-mix(in srgb, var(--edge-tint) 32%, var(--edge-paper));
+}
+
+.hero-edge-cell.is-floating {
+  animation: hero-edge-breathe 14s ease-in-out var(--edge-delay) infinite;
+}
+
+@keyframes hero-edge-breathe {
+  0%,
+  100% {
+    opacity: var(--edge-opacity);
+    translate: 0 0;
+  }
+  50% {
+    opacity: calc(var(--edge-opacity) * 0.55);
+    translate: 0 -3px;
+  }
+}
+
+@media (max-width: 680px) {
+  .hero-edge {
+    height: 76px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-edge-cell.is-floating {
+    animation: none;
+  }
+}

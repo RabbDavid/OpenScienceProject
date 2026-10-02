@@ -1,0 +1,35 @@
+.overview .ov-scene-foot {
+  bottom: 113px;
+}
+.overview .context-demo {
+  margin-top: 56px;
+}
+.ov-scene .atlas-fields {
+  bottom: 150px;
+}
+.ov-scene .atlas-zoom {
+  bottom: 105px;
+}
+.ov-scene .atlas-legend {
+  bottom: 110px;
+}
+.agent-test-prompt {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.75;
+}
+@media (max-width: 680px) {
+  .overview .ov-scene-foot {
+    bottom: 94px;
+  }
+  .ov-scene .atlas-fields {
+    bottom: 133px;
+  }
+  .ov-scene .atlas-zoom {
+    bottom: 90px;
+  }
+  .ov-scene .atlas-legend {
+    bottom: 91px;
+  }
+}

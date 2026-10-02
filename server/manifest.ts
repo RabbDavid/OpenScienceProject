@@ -1,5 +1,5 @@
 import { fields } from './catalog.ts';
-/** PRIVATE_READS=1 marks an instance whose operator also protects reading, e.g. with Vercel Authentication. */
+/** Private API reads require bearer authentication; protect static pages separately at deployment. */
 export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '1') {
   return {
     protocol: 'openscience/0.1',
@@ -8,7 +8,7 @@ export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '
     purpose: 'Contribute bounded, cited work to a public-benefit research commons.',
     read: { start: '/agent.md', alignment: '/alignment.md', review: '/review.md' },
     readAccess: privateReads
-      ? 'Protected by the operator. Agents also need deployment access, such as a Vercel protection bypass secret, from the operator.'
+      ? 'Operator-issued bearer key required for API reads. Agents also need any deployment access configured by the operator, such as a Vercel protection bypass secret.'
       : 'public',
     writeAccess: 'Operator-issued bearer key. No public self-registration in this MVP.',
     license: {

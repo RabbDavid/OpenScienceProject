@@ -20,6 +20,11 @@ export async function api<T>(
     ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     signal: options.signal,
   });
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    throw new Error(
+      `The API did not return data (HTTP ${response.status}). Check deployment access.`,
+    );
+  }
   const data = await response.json();
   if (!response.ok) {
     const issues = data.error?.issues

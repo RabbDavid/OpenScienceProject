@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { fields, literature, papers, sources, skills, policy } from './catalog.ts';
 import { ApiError, Store, hash, type Identity } from './store.ts';
 import { contextPacket } from './context.ts';
+import { requestAdmission } from './admission.ts';
 import type { Contribution } from '../shared/types.ts';
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const contentSchema = z
@@ -57,9 +58,12 @@ export function createApp(
   store: Store,
   options: {
     development?: boolean;
+    privateReads?: boolean;
+    requestLimit?: number;
   } = {},
 ) {
   const app = express();
+  const privateReads = options.privateReads ?? process.env.PRIVATE_READS === '1';
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
   app.use(
@@ -80,15 +84,42 @@ export function createApp(
       },
     }),
   );
+  // Vite's development static middleware can serve ignored workspace files. Keep operator
+  // storage out of every HTTP surface, including /@fs/, encoded paths and raw-file queries.
+  app.use(requestAdmission(options.requestLimit));
+  app.use((req, _res, next) => {
+    let path: string;
+    try {
+      path = decodeURIComponent(req.path).replaceAll('\\', '/');
+    } catch {
+      next(new ApiError(400, 'invalid_path', 'Request path is invalid.'));
+      return;
+    }
+    const segments = path.split('/');
+    if (
+      segments.some(
+        (segment) =>
+          /^(?:\.local|\.git|\.vercel|data)$/i.test(segment) ||
+          /(?:^\.env(?:\.|$)|\.env$|\.(?:sqlite(?:-[\w-]+)?|db|dump|pem|key|p12|pfx|crt|cer|der)$)/i.test(
+            segment,
+          ),
+      )
+    ) {
+      next(new ApiError(404, 'file_not_found', 'This file is not publicly available.'));
+      return;
+    }
+    next();
+  });
   // No wildcard CORS. Bearer authentication permits agents; browsers stay same-origin.
-  app.use('/api', express.json({ limit: '40kb', type: 'application/json' }));
   const authenticate = async (req: Request) => {
-    const match = /^Bearer (\S{20,200})$/.exec(req.headers.authorization ?? '');
+    const match = /^Bearer (osc_[A-Za-z0-9_-]{43})$/.exec(req.headers.authorization ?? '');
     if (!match)
       throw new ApiError(
         401,
         'key_required',
-        'Use Authorization: Bearer <operator-issued-key>. Read access is public.',
+        privateReads
+          ? 'Use Authorization: Bearer <operator-issued-key>. This instance requires a key for API reads.'
+          : 'Use Authorization: Bearer <operator-issued-key>. Read access is public.',
       );
     return await store.authenticate(match[1]);
   };
@@ -108,12 +139,36 @@ export function createApp(
     identity?.role === 'curator' || identity?.id === authorId;
   const visible = (work: Contribution, identity: Identity | undefined) =>
     (work.status !== 'held' && work.risk === 'low') || canReadHeld(identity, work.authorId);
+  app.use(async (req, res, next) => {
+    const path = req.path.toLowerCase().replace(/\/+$/, '') || '/';
+    const apiRequest = path === '/api' || path.startsWith('/api/');
+    const discoveryRequest = path === '/.well-known/openscience.json';
+    if (
+      (apiRequest || discoveryRequest) &&
+      (req.headers.authorization || !['GET', 'HEAD', 'OPTIONS'].includes(req.method))
+    ) {
+      res.set('Cache-Control', 'no-store');
+      res.vary('Authorization');
+    }
+    if (
+      privateReads &&
+      (apiRequest || discoveryRequest) &&
+      path !== '/api/health' &&
+      ['GET', 'HEAD'].includes(req.method)
+    ) {
+      res.set('Cache-Control', 'no-store');
+      res.vary('Authorization');
+      await authenticate(req);
+    }
+    next();
+  });
+  app.use('/api', express.json({ limit: '40kb', type: 'application/json' }));
   const cached = (req: Request, res: Response, value: unknown) => {
     const data = JSON.stringify(value);
     const etag = `"${hash(data)}"`;
     res.vary('Authorization');
     // Browsers always revalidate. Vercel's CDN may answer identical anonymous reads for a few
-    // seconds, so public traffic cannot reach the database on every request. It never caches
+    // seconds. Different URLs and cache misses still reach the function/database. It never caches
     // a request that carries a key, and keyed responses are never stored anywhere.
     res.set(
       req.headers.authorization
@@ -175,7 +230,7 @@ export function createApp(
     res.json({ status: 'ok', protocol: 'openscience/0.1' }),
   );
   app.get(['/api/v1/manifest', '/.well-known/openscience.json'], (req, res) =>
-    cached(req, res, discoveryManifest()),
+    cached(req, res, discoveryManifest(privateReads)),
   );
   app.get('/api/v1/me', async (req, res) => {
     res.set('Cache-Control', 'no-store').json(await authenticate(req));
@@ -514,6 +569,10 @@ export function createApp(
       next(error);
       return;
     }
+    // Error responses may concern private records or credentials. Never let them be stored.
+    res.set('Cache-Control', 'no-store');
+    res.removeHeader('Vercel-CDN-Cache-Control');
+    res.vary('Authorization');
     if (error instanceof z.ZodError) {
       res.status(422).json({
         error: {
@@ -545,10 +604,17 @@ export function createApp(
         .json({ error: { code: 'invalid_json', message: 'Request body must be valid JSON.' } });
       return;
     }
-    console.error(
-      'Unhandled service error:',
-      error instanceof Error ? error.message : 'unknown error',
-    );
+    if (err.type === 'encoding.unsupported' || err.type === 'charset.unsupported') {
+      res.status(415).json({
+        error: {
+          code: 'unsupported_encoding',
+          message: 'Use UTF-8 JSON with a supported content encoding.',
+        },
+      });
+      return;
+    }
+    // Driver/parser errors can include credentials, filesystem paths or request contents.
+    console.error('Unhandled service error. Request and database details are not logged.');
     res.status(500).json({
       error: { code: 'internal_error', message: 'The service could not complete the request.' },
     });

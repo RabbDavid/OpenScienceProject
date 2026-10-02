@@ -6,6 +6,9 @@ import { dateLabel, prettyKind, prettyOrigin, byCitations, citationLabel } from 
 import { CopyButton, fieldIcon } from './components.tsx';
 import { ContextDemo } from './ContextDemo.tsx';
 import { PixelGarden } from './PixelGarden.tsx';
+import { HeroEdge } from './HeroEdge.tsx';
+import { agentInstruction, PUBLIC_SITE_ORIGIN } from './site.ts';
+import './HomeEnhancements.css';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -32,7 +35,7 @@ export function Home({
   onField: (field: Field) => void;
   onContribution: (contribution: Contribution) => void;
 }) {
-  const line = `Read ${window.location.origin}/agent.md and follow it.`;
+  const line = agentInstruction;
   const fieldOf = (id: string) => data.fields.find((f) => f.id === id)!;
   const open = data.tasks
     .filter((t) => t.status !== 'completed')
@@ -77,7 +80,7 @@ export function Home({
               </a>
             </div>
             <div className="ov-agent-entry">
-              <a href="/agent.md">
+              <a href={`${PUBLIC_SITE_ORIGIN}/agent.md`}>
                 <code>/agent.md</code>
                 <ArrowUpRight size={13} />
               </a>
@@ -86,6 +89,7 @@ export function Home({
             </div>
           </div>
         </Atlas>
+        <HeroEdge fields={data.fields} />
         <div className="ov-scene-foot theme-dark">
           <p>
             <strong>{data.papers.length}</strong> papers <span>·</span>{' '}
@@ -98,7 +102,6 @@ export function Home({
       </section>
 
       <div className="ov-body">
-        <ContextDemo data={data} onTask={onTask} />
         <section className="ov-section">
           <header className="ov-head">
             <h2>Fields</h2>
@@ -152,6 +155,8 @@ export function Home({
             })}
           </div>
         </section>
+
+        <ContextDemo data={data} onTask={onTask} />
 
         <div className="ov-columns">
           <section className="ov-section">

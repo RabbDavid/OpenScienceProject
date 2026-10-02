@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -25,7 +25,6 @@ import {
   Mark,
   Modal,
   FieldChip,
-  TaskRow,
   SourceRow,
   Empty,
   PageHeader,
@@ -33,11 +32,13 @@ import {
   StatusIcon,
   StatusPill,
   SourceGlyph,
-  fieldIcon,
   sourceKindLabel,
 } from './components.tsx';
 import { Atlas } from './AtlasView.tsx';
 import { Home } from './Home.tsx';
+import { Frontier } from './Frontier.tsx';
+import { parseRoute, routeHash, type View } from './routes.ts';
+import { PUBLIC_SITE_ORIGIN, agentInstruction, agentTestPrompt } from './site.ts';
 import { About } from './About.tsx';
 import {
   Composer,
@@ -48,12 +49,6 @@ import {
   type Lease,
 } from './dialogs.tsx';
 
-type View = 'overview' | 'frontier' | 'map' | 'library' | 'reviews' | 'protocol' | 'about';
-interface Route {
-  view: View;
-  field: string;
-  task: string;
-}
 const nav = [
   { id: 'overview', label: 'Overview', icon: HomeIcon },
   { id: 'frontier', label: 'Questions', icon: CircleDot },
@@ -85,18 +80,7 @@ const titles: Record<View, string> = {
 };
 const GITHUB = 'https://github.com/RabbDavid/OpenScienceProject';
 
-function readRoute(): Route {
-  const [hashView, query] = window.location.hash.slice(1).split('?');
-  const view = hashView === 'graph' ? 'map' : hashView;
-  const params = new URLSearchParams(query);
-  return {
-    view: ['overview', 'frontier', 'map', 'library', 'reviews', 'protocol', 'about'].includes(view)
-      ? (view as View)
-      : 'overview',
-    field: params.get('field') ?? 'all',
-    task: params.get('task') ?? '',
-  };
-}
+const readRoute = () => parseRoute(window.location.hash);
 const pendingStatuses = ['proposed', 'changes_requested', 'held'];
 
 export function App() {
@@ -115,10 +99,7 @@ export function App() {
   const [work, setWork] = useState<Contribution | null>(null);
   const [revision, setRevision] = useState<Contribution | null>(null);
   const [toast, setToast] = useState('');
-  const [taskFilter, setTaskFilter] = useState('all');
-  const [kindFilter, setKindFilter] = useState('all');
   const [reviewFilter, setReviewFilter] = useState('pending');
-  const [sort, setSort] = useState('priority');
   const refresh = useCallback(async () => {
     try {
       const snapshot = await api<Snapshot>('/snapshot', { key: apiKey });
@@ -137,9 +118,15 @@ export function App() {
   }, [refresh]);
   useEffect(() => {
     const update = () => {
-      setRoute(readRoute());
+      const next = readRoute();
+      if (
+        new URLSearchParams(window.location.hash.split('?')[1]).get('field') === 'reproducibility'
+      )
+        window.history.replaceState(null, '', routeHash(next));
+      setRoute(next);
       setMenuOpen(false);
     };
+    update();
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
   }, []);
@@ -162,10 +149,7 @@ export function App() {
     document.title = titles[route.view];
   }, [route.view]);
   const navigate = (view: View, field = 'all', task = '') => {
-    const params = new URLSearchParams();
-    if (field !== 'all') params.set('field', field);
-    if (task) params.set('task', task);
-    window.location.hash = `${view}${params.size ? `?${params}` : ''}`;
+    window.location.hash = routeHash({ view, field, task });
     setMenuOpen(false);
     setSearch('');
   };
@@ -180,7 +164,6 @@ export function App() {
   };
   const openField = (field: Field) => {
     navigate('frontier', field.id);
-    setTaskFilter('all');
   };
   const selectedTask = data?.tasks.find((t) => t.id === route.task);
   const selectedField = data?.fields.find((f) => f.id === route.field);
@@ -190,24 +173,6 @@ export function App() {
   const pendingCount =
     data?.contributions.filter((c) => pendingStatuses.includes(c.status)).length ?? 0;
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase().trim());
-  const scopedTasks = useMemo(() => {
-    if (!data) return [];
-    return data.tasks.filter(
-      (t) =>
-        (route.field === 'all' || t.fieldId === route.field) &&
-        (kindFilter === 'all' || t.kind === kindFilter) &&
-        `${t.title} ${t.question}`.toLowerCase().includes(search.toLowerCase().trim()),
-    );
-  }, [data, route.field, kindFilter, search]);
-  const filteredTasks = useMemo(
-    () =>
-      scopedTasks
-        .filter((t) => taskFilter === 'all' || t.status === taskFilter)
-        .sort((a, b) =>
-          sort === 'title' ? a.title.localeCompare(b.title) : b.priority - a.priority,
-        ),
-    [scopedTasks, taskFilter, sort],
-  );
   const closeComposer = async () => {
     if (lease) {
       try {
@@ -475,100 +440,15 @@ export function App() {
           ) : (
             <div className="page">
               {route.view === 'frontier' && (
-                <>
-                  <PageHeader
-                    title={selectedField ? selectedField.name : 'Open questions'}
-                    description={selectedField ? selectedField.description : undefined}
-                  />
-                  {selectedField && (
-                    <div
-                      className="field-banner"
-                      style={{ ['--field' as string]: selectedField.color }}
-                    >
-                      <span className="field-banner-icon">{fieldIcon(selectedField)}</span>
-                      <div>
-                        <strong>{selectedField.benefit}</strong>
-                        <p>{selectedField.scope}</p>
-                      </div>
-                      <code>{selectedField.path}</code>
-                    </div>
-                  )}
-                  <div className="toolbar">
-                    {fieldFilter('frontier', 'All fields')}
-                    <div className="toolbar-end">
-                      <label className="search-input">
-                        <Search size={14} />
-                        <input
-                          aria-label="Search research tasks"
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          placeholder="Filter questions…"
-                        />
-                      </label>
-                      <select
-                        aria-label="Filter task type"
-                        value={kindFilter}
-                        onChange={(e) => setKindFilter(e.target.value)}
-                      >
-                        <option value="all">All types</option>
-                        <option value="source_audit">Source audits</option>
-                        <option value="synthesis">Syntheses</option>
-                        <option value="critique">Critiques</option>
-                        <option value="replication">Reproductions</option>
-                      </select>
-                      <select
-                        aria-label="Sort tasks"
-                        value={sort}
-                        onChange={(e) => setSort(e.target.value)}
-                      >
-                        <option value="priority">Priority first</option>
-                        <option value="title">Title A–Z</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="issues">
-                    <div className="issues-head">
-                      <div className="status-tabs" role="group" aria-label="Filter task status">
-                        {(['all', 'open', 'claimed', 'completed'] as const).map((status) => (
-                          <button
-                            key={status}
-                            aria-pressed={taskFilter === status}
-                            onClick={() => setTaskFilter(status)}
-                          >
-                            {status !== 'all' && <StatusIcon status={status} size={13} />}
-                            {status === 'all' ? 'All' : status[0].toUpperCase() + status.slice(1)}
-                            <span className="count">
-                              {status === 'all'
-                                ? scopedTasks.length
-                                : scopedTasks.filter((t) => t.status === status).length}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      <span className="issues-hint">
-                        {sort === 'priority' ? 'Sorted by curator priority' : 'Sorted by title'}
-                      </span>
-                    </div>
-                    {filteredTasks.map((task) => (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        field={data.fields.find((f) => f.id === task.fieldId)!}
-                        onOpen={() => openTask(task)}
-                      />
-                    ))}
-                    {!filteredTasks.length && (
-                      <Empty title="No questions match these filters.">
-                        <p>Try another field, status, or search term.</p>
-                      </Empty>
-                    )}
-                  </div>
-                  <p className="footnote">
-                    <ShieldCheck size={14} />
-                    Priority reflects curator judgment about useful starting work. It is not a
-                    measured impact score or a guarantee of safety.
-                  </p>
-                </>
+                <Frontier
+                  key={route.field}
+                  data={data}
+                  fieldId={route.field}
+                  search={search}
+                  onSearch={setSearch}
+                  onField={(id) => navigate('frontier', id)}
+                  onTask={openTask}
+                />
               )}
               {route.view === 'library' && (
                 <>
@@ -989,8 +869,8 @@ const skills = [
 ];
 
 function Protocol({ onConnect }: { onConnect: () => void }) {
-  const origin = window.location.origin;
-  const line = `Read ${origin}/agent.md and follow it.`;
+  const origin = PUBLIC_SITE_ORIGIN;
+  const line = agentInstruction;
   return (
     <div className="protocol">
       <section className="agent-hero">
@@ -1010,6 +890,14 @@ function Protocol({ onConnect }: { onConnect: () => void }) {
             Connect a key <ArrowRight size={13} />
           </button>
         </p>
+      </section>
+      <section className="protocol-section">
+        <h2>Test with your agent</h2>
+        <details className="prompt-details">
+          <summary>Read-only test prompt</summary>
+          <p className="agent-test-prompt">{agentTestPrompt}</p>
+          <CopyButton value={agentTestPrompt} label="Copy test prompt" />
+        </details>
       </section>
       <section className="protocol-section">
         <h2>What your agent does next</h2>

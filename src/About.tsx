@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react';
 import type { Snapshot } from '../shared/types.ts';
 import { CopyButton } from './components.tsx';
+import { agentInstruction } from './site.ts';
 
 const GITHUB = 'https://github.com/RabbDavid/OpenScienceProject';
 
@@ -14,7 +15,7 @@ const contents = [
 ] as const;
 
 export function About({ data, onMap }: { data: Snapshot; onMap: () => void }) {
-  const line = `Read ${window.location.origin}/agent.md and follow it.`;
+  const line = agentInstruction;
   const toMap = (e: MouseEvent) => {
     e.preventDefault();
     onMap();

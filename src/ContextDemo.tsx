@@ -4,6 +4,7 @@ import type { ContextPacket, Snapshot, Task } from '../shared/types.ts';
 import { api } from './api.ts';
 import { CopyButton, Modal } from './components.tsx';
 import { editReasons, revisionExample, utf8Bytes, wordCount } from './contextExample.ts';
+import './ContextDemo.css';
 
 const number = (value: number) => value.toLocaleString('en');
 const draft = revisionExample.draft.map((part) => part.text).join('');
@@ -11,16 +12,19 @@ const edited = revisionExample.edited.map((part) => part.text).join('');
 
 export function ContextDemo({ data, onTask }: { data: Snapshot; onTask: (task: Task) => void }) {
   const [mode, setMode] = useState<'revision' | 'context'>('revision');
+  const [taskId, setTaskId] = useState(data.tasks[0]?.id ?? '');
   const [showEdits, setShowEdits] = useState(false);
   const [maxBytes, setMaxBytes] = useState(4096);
   const [packet, setPacket] = useState<ContextPacket | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [inspectPacket, setInspectPacket] = useState(false);
-  const task = data.tasks.find((item) => item.id === 'battery-metadata-map');
+  const task = data.tasks.find((item) => item.id === taskId) ?? data.tasks[0];
   const fullJson = JSON.stringify(data);
   const fullBytes = utf8Bytes(fullJson);
-  const packetPath = task ? `/tasks/${task.id}/context?max_bytes=${maxBytes}` : '';
+  const packetPath = task
+    ? `/tasks/${encodeURIComponent(task.id)}/context?max_bytes=${maxBytes}`
+    : '';
 
   useEffect(() => {
     if (mode !== 'context' || !packetPath) return;
@@ -137,124 +141,234 @@ export function ContextDemo({ data, onTask }: { data: Snapshot; onTask: (task: T
         </>
       ) : (
         <>
-          <div className="context-controls">
-            <span>{task?.title ?? 'No example task available'}</span>
-            <label>
-              Size limit{' '}
+          <div className="context-workbench-controls">
+            <label className="context-task-picker">
+              Research question
               <select
-                value={maxBytes}
-                onChange={(event) => setMaxBytes(Number(event.target.value))}
+                value={task?.id ?? ''}
+                disabled={!data.tasks.length}
+                onChange={(event) => {
+                  setTaskId(event.target.value);
+                  setInspectPacket(false);
+                }}
               >
-                <option value={2048}>2 KB</option>
-                <option value={4096}>4 KB</option>
-                <option value={8192}>8 KB</option>
+                {!data.tasks.length && <option value="">No questions available</option>}
+                {data.fields.map((field) => (
+                  <optgroup key={field.id} label={field.name}>
+                    {data.tasks
+                      .filter((item) => item.fieldId === field.id)
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.title}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
               </select>
             </label>
+            <fieldset className="context-budgets">
+              <legend>JSON byte limit</legend>
+              {[1536, 2048, 4096, 8192].map((limit) => (
+                <button
+                  key={limit}
+                  aria-pressed={maxBytes === limit}
+                  onClick={() => {
+                    setMaxBytes(limit);
+                    setInspectPacket(false);
+                  }}
+                >
+                  {limit / 1024} KiB
+                </button>
+              ))}
+            </fieldset>
           </div>
-          <div className="demo-spread demo-context-spread" aria-busy={loading}>
-            <article className="demo-page">
-              <header>
-                <span>Whole catalogue</span>
-                <span>{number(fullBytes)} bytes</span>
-              </header>
-              <pre>
-                {JSON.stringify(
-                  {
-                    fields: `${data.fields.length} fields`,
-                    tasks: `${data.tasks.length} questions`,
-                    sources: `${data.sources.length} source records`,
-                    papers: `${data.papers.length} published papers`,
-                    contributions: `${data.contributions.length} contributions`,
-                    events: `${data.events.length} events`,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
-              <p className="demo-context-note">
-                Every field and paper, whether this question needs it or not.
-              </p>
-            </article>
-            <div className="demo-seam" aria-hidden="true">
-              <ArrowRight size={18} />
-            </div>
-            <article className="demo-page demo-edited">
-              <header>
-                <span>Task packet</span>
-                <span aria-live="polite">
+          <div className="context-workbench" aria-busy={loading}>
+            <aside className="context-catalog" aria-label="Catalog snapshot">
+              <h3>Public catalog</h3>
+              <div className="context-catalog-bytes">
+                <strong>{number(fullBytes)}</strong>
+                <span>UTF-8 bytes</span>
+              </div>
+              <dl>
+                <div>
+                  <dt>Research fields</dt>
+                  <dd>{number(data.fields.length)}</dd>
+                </div>
+                <div>
+                  <dt>Questions</dt>
+                  <dd>{number(data.tasks.length)}</dd>
+                </div>
+                <div>
+                  <dt>Source records</dt>
+                  <dd>{number(data.sources.length)}</dd>
+                </div>
+                <div>
+                  <dt>Published papers</dt>
+                  <dd>{number(data.papers.length)}</dd>
+                </div>
+              </dl>
+              <p>Full snapshot, including contributions and activity.</p>
+              <ArrowRight size={22} aria-hidden="true" />
+            </aside>
+            <article className="context-focused">
+              <header className="context-packet-heading">
+                <code>Task context</code>
+                <span className="context-live-state" role="status">
                   {loading
-                    ? 'Loading…'
+                    ? 'Fetching packet…'
                     : packet
-                      ? `${number(packet.budget.actualBytes)} bytes`
-                      : 'Cannot fit'}
+                      ? 'Live API response'
+                      : error
+                        ? 'Packet unavailable'
+                        : 'No question selected'}
                 </span>
               </header>
               {packet && (
                 <>
-                  <pre>
-                    {JSON.stringify(
-                      {
-                        task: packet.task.id,
-                        question: packet.task.question,
-                        revision: packet.task.revision,
-                        acceptance: packet.task.acceptance,
-                        exclusions: packet.task.exclusions,
-                        policy: packet.policy,
-                        sources: packet.sources.map((source) => ({
-                          id: source.id,
-                          url: source.url,
-                        })),
-                        skills: packet.skills.map((skill) => skill.id),
-                        priorWork: packet.priorWork,
-                        expand: packet.next.expand,
-                      },
-                      null,
-                      2,
-                    )}
-                  </pre>
-                  <p className="demo-context-note">
-                    The question, evidence links and constraints. More detail stays one request
-                    away.
+                  <div className="context-byte-readout">
+                    <div>
+                      <strong>{number(packet.budget.actualBytes)}</strong>
+                      <span> / {number(packet.budget.maxBytes)} bytes</span>
+                    </div>
+                    <meter
+                      min={0}
+                      max={packet.budget.maxBytes}
+                      value={packet.budget.actualBytes}
+                      aria-label="Context packet byte budget used"
+                    />
+                    <span>
+                      {packet.budget.truncated
+                        ? 'Optional detail trimmed. Required policy retained.'
+                        : 'Fits the budget. Required policy retained.'}
+                    </span>
+                  </div>
+                  <h3>{packet.task.question}</h3>
+                  <p className="context-packet-meta">
+                    Task revision {packet.task.revision} · {packet.sources.length} approved source{' '}
+                    {packet.sources.length === 1 ? 'record' : 'records'}
                   </p>
+                  <div className="context-packet-sections">
+                    <details open>
+                      <summary>
+                        Acceptance criteria <span>{packet.task.acceptance.length}</span>
+                      </summary>
+                      <ul>
+                        {packet.task.acceptance.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </details>
+                    <details>
+                      <summary>
+                        Scope exclusions <span>{packet.task.exclusions.length}</span>
+                      </summary>
+                      <ul>
+                        {packet.task.exclusions.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </details>
+                    <details>
+                      <summary>
+                        Required policy <span>{packet.policy.length}</span>
+                      </summary>
+                      <ul>
+                        {packet.policy.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </details>
+                    <details>
+                      <summary>
+                        Methods <span>{packet.skills.length}</span>
+                      </summary>
+                      {packet.skills.map((skill) => (
+                        <div className="context-method" key={skill.id}>
+                          <h4>{skill.id.replaceAll('-', ' ')}</h4>
+                          <ol>
+                            {skill.steps.map((step, i) => (
+                              <li key={i}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      ))}
+                      {!packet.skills.length && (
+                        <p>No method detail in this packet. Use the methods expansion link.</p>
+                      )}
+                    </details>
+                    <details>
+                      <summary>
+                        Prior contributions <span>{packet.priorWork.length}</span>
+                      </summary>
+                      {packet.priorWork.length ? (
+                        <ul>
+                          {packet.priorWork.map((item) => (
+                            <li key={item.id}>
+                              {item.title}{' '}
+                              <span className="context-work-status">
+                                {item.status.replaceAll('_', ' ')} · revision {item.revision}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>
+                          No prior contributions included. The related-work endpoint may contain
+                          more.
+                        </p>
+                      )}
+                    </details>
+                  </div>
+                  <div className="context-evidence">
+                    <h4>Source references</h4>
+                    {packet.sources.map((source) => (
+                      <a key={source.id} href={source.url} target="_blank" rel="noreferrer">
+                        <span>
+                          {source.title}
+                          <small>{source.locator}</small>
+                        </span>
+                        <ArrowUpRight size={14} aria-hidden="true" />
+                      </a>
+                    ))}
+                  </div>
+                  <footer className="context-expansion">
+                    <span className="context-step">03 / Expand as needed</span>
+                    <div>
+                      {[
+                        ['Task detail', packet.next.expand],
+                        ['Related work', packet.next.relatedWork],
+                        ['Methods', packet.next.skills],
+                        ['Literature', packet.next.literature],
+                      ].map(([label, href]) => (
+                        <a key={label} href={href} target="_blank" rel="noreferrer">
+                          {label}
+                          <ArrowUpRight size={12} aria-hidden="true" />
+                        </a>
+                      ))}
+                    </div>
+                  </footer>
                 </>
               )}
               {loading && (
-                <div className="demo-packet-loading" role="status">
-                  Requesting the live context packet…
+                <div className="context-packet-pending" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
                 </div>
               )}
               {error && (
-                <div className="demo-budget-error" role="alert">
+                <div className="context-fetch-error" role="alert">
+                  <h3>Could not load this packet</h3>
                   <p>{error}</p>
-                  <span>
-                    The API refuses the budget instead of dropping required policy or source links.
-                  </span>
                 </div>
               )}
               {!task && (
-                <p className="demo-context-note">
-                  The example task is unavailable in this instance.
+                <p className="context-empty">
+                  Add a real research question to inspect its context packet.
                 </p>
               )}
             </article>
           </div>
-          {packet && (
-            <div className="demo-context-result">
-              <span>
-                <strong>{number(fullBytes)}</strong>
-                <ArrowRight size={15} />
-                <strong>{number(packet.budget.actualBytes)}</strong> bytes
-              </span>
-              <span>
-                {packet.budget.truncated
-                  ? 'Optional detail trimmed; required context retained.'
-                  : 'Required context retained.'}
-              </span>
-              <button className="demo-text-button" onClick={() => setInspectPacket(true)}>
-                Full packet <ArrowUpRight size={13} />
-              </button>
-            </div>
-          )}
           <div className="demo-toolbar">
             {task && (
               <button className="demo-text-button" onClick={() => onTask(task)}>
@@ -262,13 +376,21 @@ export function ContextDemo({ data, onTask }: { data: Snapshot; onTask: (task: T
               </button>
             )}
             {packet && (
-              <CopyButton value={JSON.stringify(packet)} label="Copy live context packet" compact />
+              <div className="context-packet-actions">
+                <button className="demo-text-button" onClick={() => setInspectPacket(true)}>
+                  Inspect JSON <ArrowUpRight size={13} />
+                </button>
+                <CopyButton
+                  value={JSON.stringify(packet)}
+                  label="Copy live context packet"
+                  compact
+                />
+              </div>
             )}
           </div>
           <p className="demo-footnote">
-            Live JSON byte counts, not a model benchmark. The left summary and right preview are
-            abbreviated; the full packet retains its methods and expansion links. These inputs
-            contain different information.
+            Sizes measure UTF-8 JSON. The packet selects context for one question; it is not a
+            lossless compression of the catalog or a research-quality benchmark.
           </p>
         </>
       )}

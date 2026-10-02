@@ -13,6 +13,7 @@ import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import { ArrowRight, ArrowUpRight, Layers as LayersIcon, Minus, Plus, Scan, X } from 'lucide-react';
 import type { Contribution, Field, Paper, Snapshot, Task } from '../shared/types.ts';
 import { prettyKind, prettyOrigin, byCitations, citationLabel } from './api.ts';
+import './AtlasEnhancements.css';
 import {
   DOMAINS,
   WIDER_MAP,
@@ -1083,6 +1084,13 @@ function AtlasPanel({
     body = (
       <>
         <p className="panel-lede">{field.description}</p>
+        <QuestionRoutes
+          routes={tasks.filter((t) => t.status === 'open').map((task) => ({ task }))}
+          title="Open questions"
+          onTask={onTask}
+          onSelect={onSelect}
+          empty="No questions are open in this field right now."
+        />
         <code className="panel-path">{field.path}</code>
         <dl className="panel-facts">
           <dt>Why it matters</dt>
@@ -1090,7 +1098,11 @@ function AtlasPanel({
           <dt>Scope</dt>
           <dd>{field.scope}</dd>
         </dl>
-        <PanelList title={`Questions · ${tasks.length}`}>{tasks.map(taskLink)}</PanelList>
+        {tasks.some((t) => t.status !== 'open') && (
+          <PanelList title="Claimed and completed questions">
+            {tasks.filter((t) => t.status !== 'open').map(taskLink)}
+          </PanelList>
+        )}
         <PanelList title={`Sources · ${sources.length}`}>
           {sources.map((s) => sourceLink(s.id))}
         </PanelList>
@@ -1120,6 +1132,26 @@ function AtlasPanel({
             <PriorityIcon priority={task.priority} /> {task.priority}
           </span>
         </div>
+        {task.acceptance.length > 0 && (
+          <section className="atlas-deliverable">
+            <h3>What an answer needs</h3>
+            <ul>
+              {task.acceptance.slice(0, 2).map((criterion, index) => (
+                <li key={index}>{criterion}</li>
+              ))}
+            </ul>
+            {task.acceptance.length > 2 && (
+              <details>
+                <summary>{task.acceptance.length - 2} more requirements</summary>
+                <ul>
+                  {task.acceptance.slice(2).map((criterion, index) => (
+                    <li key={index}>{criterion}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </section>
+        )}
         <PanelList title={`Starts from · ${count(task.sourceIds.length, 'source')}`}>
           {task.sourceIds.map(sourceLink)}
         </PanelList>
@@ -1155,6 +1187,13 @@ function AtlasPanel({
           {source.year ? ` · ${source.year}` : ''}
         </p>
         <p className="panel-lede">{source.summary}</p>
+        <QuestionRoutes
+          routes={usedBy.filter((t) => t.status === 'open').map((task) => ({ task }))}
+          title="Open questions using this source"
+          onTask={onTask}
+          onSelect={onSelect}
+          empty="No open question currently uses this source."
+        />
         <dl className="panel-facts">
           <dt>Read with care</dt>
           <dd>{source.limitations}</dd>
@@ -1165,9 +1204,11 @@ function AtlasPanel({
             <span>Link checked {source.checkedAt}</span>
           </div>
         )}
-        <PanelList title={`Used by · ${count(usedBy.length, 'question')}`}>
-          {usedBy.map(taskLink)}
-        </PanelList>
+        {usedBy.some((t) => t.status !== 'open') && (
+          <PanelList title="Also used by">
+            {usedBy.filter((t) => t.status !== 'open').map(taskLink)}
+          </PanelList>
+        )}
         <PanelList
           title={`Cited by · ${count(citedBy.length, 'contribution')}`}
           empty="Not cited yet."
@@ -1221,6 +1262,37 @@ function AtlasPanel({
     const cites = data.papers.filter((p) => paper.references.includes(p.id)).sort(byCitations);
     const citedBy = data.papers.filter((p) => p.references.includes(paper.id)).sort(byCitations);
     const asSources = data.sources.filter((s) => sameWork(s, paper));
+    const routes: QuestionRoute[] = [];
+    const appendRoutes = (
+      sources: typeof asSources,
+      via?: Paper,
+      direction?: 'cites' | 'cited by',
+    ) => {
+      for (const source of sources) {
+        for (const task of data.tasks) {
+          if (
+            task.status === 'open' &&
+            task.sourceIds.includes(source.id) &&
+            !routes.some((route) => route.task.id === task.id)
+          ) {
+            routes.push({ task, source, via, direction });
+          }
+        }
+      }
+    };
+    appendRoutes(asSources);
+    for (const cited of cites)
+      appendRoutes(
+        data.sources.filter((s) => sameWork(s, cited)),
+        cited,
+        'cites',
+      );
+    for (const citing of citedBy)
+      appendRoutes(
+        data.sources.filter((s) => sameWork(s, citing)),
+        citing,
+        'cited by',
+      );
     kicker = paper.seed ? 'Paper · landmark' : 'Paper';
     body = (
       <>
@@ -1228,6 +1300,22 @@ function AtlasPanel({
           {paper.authors}
           {paper.year ? ` · ${paper.year}` : ''}
         </p>
+        <QuestionRoutes
+          routes={routes}
+          title="Connected open questions"
+          onTask={onTask}
+          onSelect={onSelect}
+          empty="No open question is linked through this paper or its recorded citation neighbors."
+        />
+        {routes.length === 0 && f && (
+          <button className="atlas-field-next" onClick={() => onField(f)}>
+            <span>
+              Explore questions in {f.shortName}
+              <small>Same field · no direct source link</small>
+            </span>
+            <ArrowRight size={15} />
+          </button>
+        )}
         <dl className="panel-facts">
           <dt>Published in</dt>
           <dd>{paper.venue ?? 'Not recorded'}</dd>
@@ -1346,9 +1434,91 @@ function AtlasPanel({
         </button>
       </div>
       <h2 className="panel-title">{node.label}</h2>
+      {fieldIdOf(node) && node.kind !== 'field' && (
+        <button
+          className="atlas-panel-field"
+          onClick={() => onSelect(nodeId.field(fieldIdOf(node)!))}
+        >
+          <i style={{ background: fieldOf(fieldIdOf(node)!)?.color }} />
+          {fieldOf(fieldIdOf(node)!)?.shortName} <ArrowUpRight size={11} />
+        </button>
+      )}
       <div className="panel-body">{body}</div>
       {action && <div className="panel-action">{action}</div>}
     </aside>
+  );
+}
+
+interface QuestionRoute {
+  task: Task;
+  source?: Snapshot['sources'][number];
+  via?: Paper;
+  direction?: 'cites' | 'cited by';
+}
+
+function QuestionRoutes({
+  routes,
+  title,
+  empty,
+  onTask,
+  onSelect,
+}: {
+  routes: QuestionRoute[];
+  title: string;
+  empty: string;
+  onTask: (task: Task) => void;
+  onSelect: (id: string) => void;
+}) {
+  const renderRoute = ({ task, source, via, direction }: QuestionRoute) => (
+    <article className="atlas-question-route" key={task.id}>
+      {source && (
+        <div className="atlas-route-path">
+          {via && (
+            <button onClick={() => onSelect(nodeId.paper(via.id))}>
+              {direction === 'cites' ? 'Cites' : 'Cited by'}: {via.title}
+            </button>
+          )}
+          <button onClick={() => onSelect(nodeId.source(source.id))}>
+            <SourceGlyph kind={source.kind} size={10} />
+            {via ? 'Question source' : 'This paper is a question source'}
+          </button>
+        </div>
+      )}
+      <button className="atlas-route-question" onClick={() => onTask(task)}>
+        <span>{task.title}</span>
+        <ArrowUpRight size={15} />
+      </button>
+      <div className="atlas-route-meta">
+        <span>{prettyKind(task.kind)}</span>
+        <span>{task.effort}</span>
+      </div>
+    </article>
+  );
+  return (
+    <section className="atlas-question-routes" aria-label={title}>
+      <div className="atlas-route-heading">
+        <h3>{title}</h3>
+        <span>{routes.length}</span>
+      </div>
+      {routes.length ? (
+        <>
+          {routes.slice(0, 2).map(renderRoute)}
+          {routes.length > 2 && (
+            <details className="atlas-route-more">
+              <summary>Show {routes.length - 2} more questions</summary>
+              {routes.slice(2).map(renderRoute)}
+            </details>
+          )}
+          {routes.some((route) => route.via) && (
+            <p className="atlas-route-note">
+              Citation paths show recorded references; they do not establish agreement.
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="panel-empty">{empty}</p>
+      )}
+    </section>
   );
 }
 
