@@ -322,6 +322,7 @@ test('development static middleware cannot publish ignored operator files or dat
   assert.ok(config.server.fs.deny.includes('**/data/**'));
   const vite = await createServer({
     root: directory,
+    cacheDir: join(directory, '.vite-cache'),
     configFile: false,
     server: { middlewareMode: true, hmr: false, ws: false, fs: { deny: config.server.fs.deny } },
     appType: 'spa',

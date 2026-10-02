@@ -157,6 +157,23 @@ test('mechanistic interpretability is an active, source-scoped field with usable
   );
 });
 
+test('literature discovery searches authors, years and fields while respecting field filters', async () => {
+  const f = await fixture();
+  const author = await f.call('/papers?q=Nanda');
+  assert.equal(author.response.status, 200);
+  assert.ok(author.data.papers.some((paper: { id: string }) => paper.id === 'arxiv-2309.16042'));
+  const topic = await f.call('/papers?q=mechanistic%20interpretability');
+  assert.equal(topic.data.total, 8);
+  assert.ok(topic.data.papers.some((paper: { id: string }) => paper.id === 'arxiv-2209.10652'));
+  const year = await f.call('/papers?field=mechinterp&q=2024');
+  assert.deepEqual(
+    year.data.papers.map((paper: { id: string }) => paper.id),
+    ['arxiv-2406.04093'],
+  );
+  const otherField = await f.call('/papers?field=solar&q=mechanistic%20interpretability');
+  assert.equal(otherField.data.total, 0);
+});
+
 test('literature is real, compact, and internally linked', async () => {
   const f = await fixture();
   const list = await f.call('/papers?field=batteries&limit=5');

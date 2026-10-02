@@ -1,141 +1,87 @@
 .overview .ov-scene {
   background: var(--bg);
 }
+
+/* Subtract two local apertures from the real atlas, including little paper gaps
+   inside its edge. The rest of the map keeps its original surface and detail. */
 .overview .ov-scene > .atlas {
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    100% calc(100% - 62px),
-    calc(100% - 96px) 100%,
-    228px 100%,
-    0 calc(100% - 146px)
-  );
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 220'%3E%3Cpath d='M0 45 18 35 34 45V62L58 77 56 98 84 111 103 100 125 113V140L151 155 169 145 196 159V184L225 199 246 187 272 202V220H360 0Z'/%3E%3Cpath d='m18 23 2-1 2 1v3l-2 1-2-1Zm82 63 3-2 3 2v4l-3 2-3-2Zm78 54 2-1 2 1v3l-2 1-2-1Z'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 170 110'%3E%3Cg transform='translate(170 0) scale(-1 1)'%3E%3Cpath d='M0 28 15 20 30 29V43L48 53V72L65 82 83 73 101 84V98L124 110H170 0Z'/%3E%3Cpath d='m18 10 2-1 2 1v3l-2 1-2-1Z'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(#000, #000);
+  mask-size:
+    360px 220px,
+    170px 110px,
+    100% 100%;
+  mask-position:
+    left bottom,
+    right bottom,
+    center;
+  mask-repeat: no-repeat;
+  mask-composite: exclude;
 }
+
 .hero-edge {
   position: absolute;
   inset: auto 0 0;
-  height: 188px;
+  height: 220px;
   z-index: 2;
   pointer-events: none;
   user-select: none;
 }
+
 .hero-corner {
   position: absolute;
-  bottom: -42px;
-  height: 230px;
-  width: 285px;
-  transform-origin: bottom left;
+  display: block;
+  fill: var(--side-bg);
+  overflow: hidden;
 }
+
 .hero-corner--left {
   left: 0;
+  bottom: -60px;
+  width: 360px;
+  height: 280px;
 }
+
 .hero-corner--right {
   right: 0;
-  width: 145px;
-  transform-origin: bottom right;
+  bottom: -45px;
+  width: 170px;
+  height: 155px;
+  transform: scaleX(-1);
 }
-.hero-tile-anchor {
-  position: absolute;
-  left: var(--tile-at);
-  bottom: var(--tile-up);
-  width: var(--tile-size);
-  height: calc(var(--tile-size) * 0.84);
-  opacity: var(--tile-opacity);
-  transform: translate(-50%, 50%) rotate(var(--tile-turn));
-}
-.hero-corner--right .hero-tile-anchor {
-  left: auto;
-  right: var(--tile-at);
-  transform: translate(50%, 50%) rotate(var(--tile-turn));
-}
-.hero-tile-anchor::before {
-  content: '';
-  position: absolute;
-  left: 13%;
-  bottom: 9%;
-  width: 76%;
-  height: 18%;
-  background: radial-gradient(ellipse, rgb(19 40 27 / 0.18), rgb(19 40 27 / 0) 72%);
-  transform: translate(4px, 9px);
-}
-.hero-tile {
-  transform: var(--tile-response, translate3d(0, 0, 0));
-  transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.hero-tile svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.tile-face {
-  fill: #edf0e6;
-  stroke: rgb(255 255 245 / 0.4);
-  stroke-width: 0.5;
-  stroke-linejoin: round;
-}
-.tile-side-light {
-  fill: #c7d0c0;
-}
-.tile-side-shade {
-  fill: #94a18f;
-}
-.tile-rim {
-  fill: none;
-  stroke: #fcfdf6;
-  stroke-width: 0.65;
-  stroke-linecap: round;
-}
-.is-sage .tile-face {
-  fill: color-mix(in srgb, var(--tile-tint) 32%, #e8ede0);
-}
-.is-sage .tile-side-light {
-  fill: color-mix(in srgb, var(--tile-tint) 22%, #c0cbb7);
-}
-.is-sage .tile-side-shade {
-  fill: color-mix(in srgb, var(--tile-tint) 24%, #83967d);
-}
-.is-glass .tile-face {
-  fill: rgb(184 210 174 / 0.18);
-  stroke: rgb(211 231 195 / 0.65);
-}
-.is-glass .tile-side-light {
-  fill: rgb(144 176 137 / 0.35);
-}
-.is-glass .tile-side-shade {
-  fill: rgb(81 112 79 / 0.36);
-}
-.is-glass .tile-rim {
-  stroke: rgb(229 240 210 / 0.65);
-}
+
+/* Keep detail panels fully readable when the embedded atlas is being explored. */
 .overview .ov-scene:has(.atlas-panel) > .atlas {
-  clip-path: none;
+  mask-image: none;
 }
+
 .ov-scene:has(.atlas-panel) .hero-edge {
   visibility: hidden;
 }
+
 @media (max-width: 760px) {
   .overview .ov-scene > .atlas {
-    clip-path: polygon(
-      0 0,
-      100% 0,
-      100% calc(100% - 34px),
-      calc(100% - 53px) 100%,
-      125px 100%,
-      0 calc(100% - 80px)
-    );
+    mask-size:
+      198px 121px,
+      93.5px 60.5px,
+      100% 100%;
   }
+
   .hero-edge {
-    height: 103px;
+    height: 121px;
   }
-  .hero-corner {
-    bottom: -23px;
-    transform: scale(0.55);
+
+  .hero-corner--left {
+    bottom: -33px;
+    width: 198px;
+    height: 154px;
   }
-}
-@media (prefers-reduced-motion: reduce), (hover: none) {
-  .hero-tile {
-    transform: none;
-    transition: none;
+
+  .hero-corner--right {
+    bottom: -24.75px;
+    width: 93.5px;
+    height: 85.25px;
   }
 }

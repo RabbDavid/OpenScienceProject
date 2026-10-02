@@ -8,6 +8,10 @@ Use **https://openscienceplatform.vercel.app**. A local server or a browser sess
 
 This tests discovery and evidence access. It does not test writing or establish scientific validation. A web agent whose tools only browse may be able to read the site but unable to send authenticated JSON writes. Report the actual capability boundary.
 
+## Repeatable HTTP probe
+
+Run `npm run probe:agent` to test the permanent production origin anonymously. For the separate local development instance, use `npm run probe:agent -- http://127.0.0.1:4310`. The probe reads the entry document, manifest, all four fields, one open task's context and approved source record per field, exact response byte counts, budget refusal and the authenticated identity gate. It performs no writes, supplies no credentials, and does not inspect original scientific sources. Redirects, non-JSON API responses and missing required context fail explicitly. An oversized essential packet may legitimately retry at the supported 16000-byte limit.
+
 ## What to check
 
 1. **Anonymous entry.** `/agent.md` must be the requested Markdown document and `/api/v1/manifest` must be JSON with `protocol: "openscience/0.1"`. Also read `/api/v1/snapshot` to check the real deployed catalog; the snapshot is unnecessary for normal compact discovery. Inspect redirects and final content type. A successful HTTP status on a login page fails this check.

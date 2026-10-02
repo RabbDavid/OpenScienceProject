@@ -22,7 +22,7 @@ test('emitted JavaScript API starts without a TypeScript loader and serves neste
     const config = ts.readConfigFile(join(root, 'tsconfig.json'), ts.sys.readFile);
     assert.equal(config.error, undefined);
     const { options } = ts.parseJsonConfigFileContent(config.config, ts.sys, root);
-    for (const directory of ['api', 'server']) {
+    for (const directory of ['api', 'server', 'shared']) {
       mkdirSync(join(output, directory), { recursive: true });
       for (const name of readdirSync(join(root, directory)).filter((name) =>
         name.endsWith('.ts'),

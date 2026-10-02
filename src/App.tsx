@@ -20,7 +20,16 @@ import {
   X,
 } from 'lucide-react';
 import type { Contribution, Field, Snapshot, Task } from '../shared/types.ts';
-import { api, dateLabel, prettyKind, prettyOrigin, byCitations, citationLabel } from './api.ts';
+import {
+  api,
+  dateLabel,
+  prettyKind,
+  prettyOrigin,
+  byCitations,
+  citationLabel,
+  paperMatches,
+  sourceMatches,
+} from './api.ts';
 import {
   Mark,
   Modal,
@@ -37,6 +46,7 @@ import {
 import { Atlas } from './AtlasView.tsx';
 import { Home } from './Home.tsx';
 import { Frontier } from './Frontier.tsx';
+import { LiteratureSearch } from './LiteratureSearch.tsx';
 import { parseRoute, routeHash, type View } from './routes.ts';
 import { PUBLIC_SITE_ORIGIN, agentInstruction, agentTestPrompt } from './site.ts';
 import { About } from './About.tsx';
@@ -70,13 +80,13 @@ const crumbs: Record<View, string> = {
   about: 'About',
 };
 const titles: Record<View, string> = {
-  overview: 'OpenScience Commons · open research questions for AI agents',
-  map: 'Knowledge map · OpenScience Commons',
-  about: 'About · OpenScience Commons',
-  frontier: 'Open questions · OpenScience Commons',
-  library: 'Sources · OpenScience Commons',
-  reviews: 'Review · OpenScience Commons',
-  protocol: 'For agents · OpenScience Commons',
+  overview: 'OpenScience · open research questions for AI agents',
+  map: 'Knowledge map · OpenScience',
+  about: 'About · OpenScience',
+  frontier: 'Open questions · OpenScience',
+  library: 'Sources · OpenScience',
+  reviews: 'Review · OpenScience',
+  protocol: 'For agents · OpenScience',
 };
 const GITHUB = 'https://github.com/RabbDavid/OpenScienceProject';
 
@@ -172,7 +182,6 @@ export function App() {
     work && cachedWork && cachedWork.revision >= work.revision ? cachedWork : work;
   const pendingCount =
     data?.contributions.filter((c) => pendingStatuses.includes(c.status)).length ?? 0;
-  const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase().trim());
   const closeComposer = async () => {
     if (lease) {
       try {
@@ -229,19 +238,16 @@ export function App() {
     ) ?? [];
   const visiblePapers = (data?.papers ?? [])
     .filter(
-      (p) =>
-        (route.field === 'all' || p.fieldId === route.field) &&
-        matches(`${p.title} ${p.authors} ${p.venue ?? ''}`),
+      (paper) =>
+        (route.field === 'all' || paper.fieldId === route.field) &&
+        paperMatches(paper, data?.fields ?? [], search),
     )
     .sort(byCitations);
-  const matchingPapers = search.trim()
-    ? (data?.papers ?? []).filter((p) => matches(`${p.title} ${p.authors}`)).sort(byCitations)
-    : [];
   const visibleSources =
     data?.sources.filter(
       (s) =>
         (route.field === 'all' || s.fieldId === route.field) &&
-        matches(`${s.title} ${s.authors} ${s.summary}`),
+        sourceMatches(s, data?.fields ?? [], search),
     ) ?? [];
 
   return (
@@ -262,7 +268,7 @@ export function App() {
             className="brand"
             href="#overview"
             onClick={linkTo('overview')}
-            aria-label="OpenScience Commons overview"
+            aria-label="OpenScience overview"
           >
             <Mark size={26} />
             OpenScience
@@ -356,7 +362,7 @@ export function App() {
           </button>
           <nav className="crumbs" aria-label="Breadcrumb">
             <a href="#overview" onClick={linkTo('overview')}>
-              Commons
+              OpenScience
             </a>
             <ChevronRight size={13} />
             <span aria-current="page">{crumbs[route.view]}</span>
@@ -370,11 +376,11 @@ export function App() {
           <div className="topbar-end">
             <button
               className="search-btn"
-              aria-label="Search the commons"
+              aria-label="Search literature"
               onClick={() => setSearchOpen(true)}
             >
               <Search size={14} />
-              <span>Search the commons</span>
+              <span>Search literature</span>
               <kbd>Ctrl K</kbd>
             </button>
             <button
@@ -403,11 +409,11 @@ export function App() {
           {busy && !data ? (
             <div className="loading">
               <LoaderCircle className="spin" size={22} />
-              <p>Opening the commons…</p>
+              <p>Loading…</p>
             </div>
           ) : !data ? (
             <div className="page">
-              <Empty title="The commons is temporarily unavailable">
+              <Empty title="OpenScience is temporarily unavailable">
                 <p>{loadError}</p>
                 <button
                   className="btn btn-primary"
@@ -476,7 +482,7 @@ export function App() {
                         usedBy={data.tasks.filter((t) => t.sourceIds.includes(source.id)).length}
                       />
                     ))}
-                    {!visibleSources.length && (
+                    {!visibleSources.length && !visiblePapers.length && (
                       <Empty title="No matching sources.">
                         <p>Try another field or search term.</p>
                       </Empty>
@@ -515,7 +521,6 @@ export function App() {
                               />
                               {p.authors} · {p.year ?? 'undated'}
                               {p.venue && <> · {p.venue}</>} · {citationLabel(p)}
-                              {p.seed && <> · landmark</>}
                               {p.openAccess && <> · open access</>}
                             </p>
                           </div>
@@ -624,8 +629,7 @@ export function App() {
           {!atlasView && (
             <footer className="site-footer">
               <p>
-                <Mark size={14} /> OpenScience Commons · a research commons for people and their AI
-                agents · MIT license
+                <Mark size={14} /> OpenScience · MIT license
               </p>
               <nav aria-label="Footer">
                 <a href="#about" onClick={linkTo('about')}>
@@ -643,80 +647,17 @@ export function App() {
         </main>
       </div>
       {data && searchOpen && (
-        <Modal title="Search the commons" onClose={() => setSearchOpen(false)} wide bare>
-          <label className="palette-input">
-            <Search size={18} />
-            <input
-              autoFocus
-              data-autofocus
-              aria-label="Search all research"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search questions, sources and papers…"
-            />
-            <kbd>Esc</kbd>
-          </label>
-          <div className="palette-results">
-            {data.tasks.some((t) => matches(`${t.title} ${t.question}`)) && (
-              <div className="palette-group">Questions</div>
-            )}
-            {data.tasks
-              .filter((t) => matches(`${t.title} ${t.question}`))
-              .map((task) => (
-                <button key={task.id} onClick={() => openTask(task)}>
-                  <StatusIcon status={task.status} />
-                  <div>
-                    <strong>{task.title}</strong>
-                    <small>
-                      {data.fields.find((f) => f.id === task.fieldId)?.shortName} ·{' '}
-                      {prettyKind(task.kind)} · {task.status}
-                    </small>
-                  </div>
-                  <ArrowRight size={15} />
-                </button>
-              ))}
-            {data.sources.some((s) => matches(`${s.title} ${s.authors}`)) && (
-              <div className="palette-group">Sources</div>
-            )}
-            {data.sources
-              .filter((s) => matches(`${s.title} ${s.authors}`))
-              .map((source) => (
-                <a key={source.id} href={source.url} target="_blank" rel="noreferrer">
-                  <SourceGlyph kind={source.kind} />
-                  <div>
-                    <strong>{source.title}</strong>
-                    <small>
-                      {sourceKindLabel(source.kind)} · {source.authors}
-                    </small>
-                  </div>
-                  <ArrowUpRight size={15} />
-                </a>
-              ))}
-            {matchingPapers.length > 0 && <div className="palette-group">Papers</div>}
-            {matchingPapers.slice(0, 6).map((paper) => (
-              <a key={paper.id} href={paper.url} target="_blank" rel="noreferrer">
-                <span
-                  className="glyph-paper"
-                  style={{ background: data.fields.find((f) => f.id === paper.fieldId)?.color }}
-                />
-                <div>
-                  <strong>{paper.title}</strong>
-                  <small>
-                    {paper.authors} · {paper.year ?? 'undated'} · {citationLabel(paper)}
-                  </small>
-                </div>
-                <ArrowUpRight size={15} />
-              </a>
-            ))}
-            {!data.tasks.some((t) => matches(`${t.title} ${t.question}`)) &&
-              !data.sources.some((s) => matches(`${s.title} ${s.authors}`)) &&
-              !matchingPapers.length && (
-                <Empty title="No matching records.">
-                  <p>Try another term.</p>
-                </Empty>
-              )}
-          </div>
-        </Modal>
+        <LiteratureSearch
+          data={data}
+          onTask={openTask}
+          onClose={() => setSearchOpen(false)}
+          onBrowse={(query) => {
+            navigate('library');
+            setSearch(query);
+            setShowAllPapers(true);
+            setSearchOpen(false);
+          }}
+        />
       )}
       {connectOpen && (
         <ConnectDialog

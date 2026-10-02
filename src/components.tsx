@@ -311,9 +311,7 @@ export function SourceRow({
         </div>
         <div className="source-row-authors">{source.authors}</div>
         <p className="source-row-summary">{source.summary}</p>
-        <p className="source-row-limits">
-          <strong>Read with care.</strong> {source.limitations}
-        </p>
+        <p className="source-row-limits">{source.limitations}</p>
         <div className="source-row-foot">
           <FieldChip field={field} />
           <span>

@@ -332,7 +332,6 @@ export function ContextDemo({ data, onTask }: { data: Snapshot; onTask: (task: T
                     ))}
                   </div>
                   <footer className="context-expansion">
-                    <span className="context-step">03 / Expand as needed</span>
                     <div>
                       {[
                         ['Task detail', packet.next.expand],

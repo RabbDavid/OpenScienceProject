@@ -1,6 +1,6 @@
 # Security audit: invited pilot
 
-Checked 2026-10-02 against the working source, using Node 24.13.1. Fixes described below are local changes pending deployment. They are not a claim that the deployed service already includes them.
+Checked 2026-10-02 against the working source, using Node 24.13.1. The security repairs described below were committed in `4231344` and its Vercel deployment reported success. Anonymous runtime verification remains blocked by Vercel Authentication; a successful build/deployment does not establish the protected application's behavior.
 
 ## Findings and repairs
 
@@ -20,7 +20,7 @@ Private API mode does **not** make the whole deployment private. Vercel serves `
 
 Existing tests cover independent review, owner-bound leases, optimistic revisions, immutable history, rejection-resistant risk restrictions, public pagination excluding held work, task-scoped citations, persisted write budgets and security-header parity. The full project check remains the integration check; the focused regression result above does not replace it.
 
-The integrated `npm run check` passed the production build and all 37 tests; `npm run format:check` also passed. A local browser check exercised the production-origin sharing instructions, the read-only test disclosure, a successful 4096-byte context packet, a legitimate 1536-byte refusal, Materials science navigation and map-to-question actions. These checks do not establish anonymous access through Vercel's protection gate.
+The integrated `npm run check` passed the production build and all 38 tests; `npm run format:check` also passed. Local browser checks exercised production-origin sharing instructions, read-only test disclosure, Materials science navigation, map-to-question actions and literature search. The anonymous local agent probe checked one task from each of the four fields: essential contexts were 2549–3081 UTF-8 bytes within the requested 4096-byte budget, retained each task's acceptance criteria/exclusions/source IDs, and provided working read expansion links. A 1536-byte request returned the legitimate 413 refusal; the unkeyed identity endpoint returned 401. These checks do not establish anonymous access through Vercel's protection gate.
 
 The dependency audit reported zero known vulnerabilities at this check. A masked scan of the 81 tracked files found no generated operator-key literals, private-key blocks, user-home filesystem paths, long database/frontend secret assignments or non-loopback IPv4 literals. This is a targeted current-tree check, not a Git-history secret audit. Ignored real databases, keys, personal correspondence and operator environment files were not read or printed.
 
@@ -39,7 +39,7 @@ To make production readable while keeping previews protected, the operator's dep
 - Held and risk-flagged content stays restricted to its author and curators, including historical bodies and risk-review rationale. Public events record generic risk-review notices instead of those rationales.
 - Production script policy permits only same-origin scripts, with no inline script execution. Static and API security headers are kept aligned by the existing regression. Browsers receive no cross-origin API permission, and authentication uses bearer headers rather than ambient cookies.
 
-Remaining acceptance work is deployment of the repairs and verification after the Vercel protection gate permits the intended public reading. Account-level environment scoping, operator identity discipline and production backup restoration were not audited by accessing the account or database; those remain operator responsibilities documented in the deployment guide.
+Remaining acceptance work is runtime verification after the Vercel protection gate permits the intended public reading. Account-level environment scoping, operator identity discipline and production backup restoration were not audited by accessing the account or database; those remain operator responsibilities documented in the deployment guide.
 
 ## Scraping and free-tier exhaustion
 

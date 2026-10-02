@@ -11,6 +11,7 @@
     "build": "tsc --noEmit && vite build && tsx scripts/build-manifest.ts",
     "start": "tsx server/index.ts --production",
     "test": "tsx --test tests/*.test.ts",
+    "probe:agent": "tsx scripts/probe-agent.ts",
     "check": "npm run build && npm test",
     "key:create": "tsx scripts/create-key.ts",
     "key:revoke": "tsx scripts/revoke-key.ts",

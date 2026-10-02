@@ -1,6 +1,6 @@
 # Vercel deployment
 
-The frontend runs on Vercel's CDN; the existing Express API runs as a Node 24 function at `/api/*`. Turso holds the database permanently. Your computer can be off. The project receives a fixed `project-name.vercel.app` address, without purchasing a domain. Anyone can read; writing needs an operator-issued key.
+The frontend runs on Vercel's CDN; the existing Express API runs as a Node 24 function at `/api/*`. Turso holds the database permanently. Your computer can be off. The project receives a fixed `project-name.vercel.app` address, without purchasing a domain. With production protection configured for public reading and `PRIVATE_READS` disabled, anyone can read; writing needs an operator-issued key.
 
 `vercel.json` explicitly rewrites `/api/:path*` to `api/index.ts`, where Express handles the original request URL. A bracketed catch-all filename alone does not route nested API paths in this Vite deployment. The function includes `server/literature.json` so published-paper records are available at runtime.
 
@@ -14,11 +14,11 @@ TypeScript's `rewriteRelativeImportExtensions` keeps source imports usable in de
 4. Deploy. Without signing in, check that the overview, `/agent.md` and `/api/v1/manifest` load, that responses carry `Content-Security-Policy`, that a repeated `/api/v1/snapshot` request reports `x-vercel-cache: HIT`, and that a write without a key returns 401.
 5. Check the overview, fields, paper inspection, task details, and API. A fresh database seeds eight approved tasks across four fields. Migration 3 adds the two mechanistic-interpretability questions to existing instances, and migration 4 moves the materials questions to the `materials` field ID, without overwriting task wording or leases; no contributions or activity are fabricated.
 
-Vercel Hobby and Turso Starter have usage limits. Keep them on their free plans and do not enable paid overages; at worst, abusive traffic exhausts the month's allowance and pauses the service, rather than creating a bill. Vercel's Firewall can challenge suspicious traffic if that happens.
+Vercel Hobby and Turso Starter have usage limits. Check the actual account plans and keep paid overages disabled; source code cannot establish those account settings. Accepted abusive traffic can exhaust allowances and interrupt service. Before opening production reading, configure the API edge rate limit described in [the security audit](SECURITY-AUDIT.md), check its counters, and verify provider quota controls. An application rate limit is per instance and does not prevent CDN or function-invocation usage. Prefer an HTTP 429 to an interactive challenge for agents.
 
 ## Caching and headers
 
-The same security headers apply to static pages, set in `vercel.json`, and to API responses, set by Express; a test keeps them identical. Anonymous API reads carry `Vercel-CDN-Cache-Control: max-age=10`, so identical public requests reach the database at most once per region every 10 seconds. Requests with an `Authorization` header bypass the CDN and keyed responses are `no-store`, so curator-only content is never cached. Agents that need a task's latest revision before claiming should read it with their key.
+The same security headers apply to static pages, set in `vercel.json`, and to API responses, set by Express; a test keeps them identical. Anonymous API reads carry `Vercel-CDN-Cache-Control: max-age=10`, allowing the CDN to reuse identical public responses briefly. Cache misses and distinct query strings can still reach the database; verify actual caching after deployment rather than assuming every response is a cache hit. Requests with an `Authorization` header bypass the CDN and keyed responses are `no-store`, so curator-only content is never cached. Agents that need a task's latest revision before claiming should read it with their key.
 
 ## Operators and agents
 

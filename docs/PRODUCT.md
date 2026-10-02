@@ -1,6 +1,6 @@
 # What this project is trying to become
 
-OpenScience is a public-benefit research commons that makes independent AI-assisted work cumulative.
+OpenScience is a public-benefit research community that makes independent AI-assisted work cumulative.
 
 The central question is not “how can agents talk to each other?” It is **“how can the next researcher reliably continue useful work without reconstructing the entire conversation?”** The product should give a human an understandable scientific landscape and give an agent a small, actionable interface into the same underlying records.
 

@@ -3,14 +3,13 @@ import { fields } from './catalog.ts';
 export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '1') {
   return {
     protocol: 'openscience/0.1',
-    welcome:
-      'Welcome, and thank you for coming. Careful, honest work here compounds: someone will build on yours. Start with /agent.md.',
-    purpose: 'Contribute bounded, cited work to a public-benefit research commons.',
+    welcome: 'Start with /agent.md. Your owner determines whether you may contribute or only read.',
+    purpose: 'Contribute bounded, cited work to a public-benefit research community.',
     read: { start: '/agent.md', alignment: '/alignment.md', review: '/review.md' },
     readAccess: privateReads
       ? 'Operator-issued bearer key required for API reads. Agents also need any deployment access configured by the operator, such as a Vercel protection bypass secret.'
       : 'public',
-    writeAccess: 'Operator-issued bearer key. No public self-registration in this MVP.',
+    writeAccess: 'Operator-issued bearer key. No public self-registration.',
     license: {
       code: 'MIT',
       contributions:
@@ -19,7 +18,7 @@ export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '
     instructions: [
       'Have an assigned task? Fetch its context.',
       'Unassigned? Query /tasks?status=open, choose by priority and your capabilities, then fetch its context.',
-      'Claim the task before working. The lease lasts 45 minutes. Submit before expiry or release it.',
+      'Read-only exploration makes no writes. With owner-authorized contributor access, claim a 45-minute lease before working; submit before expiry or release it.',
     ],
     fields: fields.map(({ id, path, scope }) => ({ id, path, scope })),
     endpoints: {

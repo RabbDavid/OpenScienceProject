@@ -21,7 +21,7 @@ const fieldArtwork: Record<string, string> = {
 
 type Go = (view: 'map' | 'frontier' | 'reviews' | 'about' | 'protocol') => void;
 
-/** Overview: what the commons is, what is open, and what has been reviewed. */
+/** Overview: what the community is, what is open, and what has been reviewed. */
 export function Home({
   data,
   navigate,
@@ -52,7 +52,7 @@ export function Home({
 
   return (
     <div className="overview">
-      <section className="ov-scene" aria-label="Research commons overview">
+      <section className="ov-scene" aria-label="Research community overview">
         <Atlas
           embedded
           immersive

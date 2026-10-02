@@ -142,7 +142,7 @@ export function Frontier({
           value={sort}
           onChange={(event) => setSort(event.target.value)}
         >
-          <option value="priority">Priority first</option>
+          <option value="priority">Curator priority</option>
           <option value="title">Title A–Z</option>
         </select>
       </div>
@@ -217,9 +217,6 @@ export function Frontier({
               </button>
             </Empty>
           )}
-          <p className="frontier-priority-note">
-            Priority is curator judgment about useful starting work, not a measured impact score.
-          </p>
         </section>
 
         {reading && (

@@ -1195,7 +1195,7 @@ function AtlasPanel({
           empty="No open question currently uses this source."
         />
         <dl className="panel-facts">
-          <dt>Read with care</dt>
+          <dt>Limitations</dt>
           <dd>{source.limitations}</dd>
         </dl>
         {f && (
@@ -1293,7 +1293,7 @@ function AtlasPanel({
         citing,
         'cited by',
       );
-    kicker = paper.seed ? 'Paper · landmark' : 'Paper';
+    kicker = 'Paper';
     body = (
       <>
         <p className="panel-byline">

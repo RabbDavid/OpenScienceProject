@@ -6,6 +6,7 @@ import { fields, literature, papers, sources, skills, policy } from './catalog.t
 import { ApiError, Store, hash, type Identity } from './store.ts';
 import { contextPacket } from './context.ts';
 import { requestAdmission } from './admission.ts';
+import { paperMatches } from '../shared/literature.ts';
 import type { Contribution } from '../shared/types.ts';
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const contentSchema = z
@@ -322,7 +323,7 @@ export function createApp(
     const offset = integerParam(req.query.offset, 0, 0, 100000);
     const needle = typeof q === 'string' ? q.toLowerCase().trim() : '';
     const matches = papers.filter(
-      (p) => (!field || p.fieldId === field) && (!needle || p.title.toLowerCase().includes(needle)),
+      (p) => (!field || p.fieldId === field) && paperMatches(p, fields, needle),
     );
     cached(req, res, {
       note: 'Published background literature. Known citation counts rank first; counts unavailable from the metadata source are null. Use it to orient; cite only your task’s approved sources in a contribution.',

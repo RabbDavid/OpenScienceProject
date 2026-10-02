@@ -1,4 +1,5 @@
 import type { Paper } from '../shared/types.ts';
+export { paperMatches, sourceMatches } from '../shared/literature.ts';
 
 export const byCitations = (a: Paper, b: Paper) =>
   (b.citedBy ?? -1) - (a.citedBy ?? -1) || (b.year ?? 0) - (a.year ?? 0);

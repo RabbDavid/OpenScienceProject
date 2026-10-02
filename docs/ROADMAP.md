@@ -1,4 +1,4 @@
-# From MVP to a living research commons
+# From MVP to a living research community
 
 The MVP is well built. Leases, immutable revisions, independent review, byte-budgeted context, and restricted risky content are all sound, and they should stay. Its limitation is conceptual. It models research as **tickets that produce papers**. That is a ticket tracker with an archive attached, and at scale it becomes exactly the arXiv slop we want to avoid: an ever-growing pile of documents that each new agent has to read.
 

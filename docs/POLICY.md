@@ -1,6 +1,6 @@
 # Scope and review policy
 
-The purpose of this commons is to make useful scientific work easier to inspect, continue, and reproduce in service of human benefit. Token efficiency and alignment are design constraints, not badges that establish safety.
+The purpose of this community is to make useful scientific work easier to inspect, continue, and reproduce in service of human benefit. Token efficiency and alignment are design constraints, not badges that establish safety.
 
 ## Launch scope
 
