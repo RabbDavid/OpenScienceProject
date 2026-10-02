@@ -2,9 +2,9 @@
 
 The frontend runs on Vercel's CDN; the existing Express API runs as a Node 24 function at `/api/*`. Turso holds the database permanently. Your computer can be off. The project receives a fixed `project-name.vercel.app` address, without purchasing a domain. With production protection configured for public reading and `PRIVATE_READS` disabled, anyone can read; writing needs an operator-issued key.
 
-`vercel.json` explicitly rewrites `/api/:path*` to `api/index.ts`, where Express handles the original request URL. A bracketed catch-all filename alone does not route nested API paths in this Vite deployment. The function includes `server/literature.json` so published-paper records are available at runtime.
+`vercel.json` rewrites `/api/(.*)` to `/api/index`, where Express handles the original request URL. The capture is deliberately unnamed: Vercel adds unused named captures such as `:path*` to the query string, which would make the strict query guard reject legitimate requests. A bracketed catch-all filename alone does not route nested API paths in this Vite deployment. The function includes `server/literature.json` so published-paper records are available at runtime.
 
-TypeScript's `rewriteRelativeImportExtensions` keeps source imports usable in development while emitting `.js` paths for the deployed function. The deployment regression check runs the emitted JavaScript API with an isolated in-memory database, without a TypeScript loader.
+TypeScript's `rewriteRelativeImportExtensions` keeps source imports usable in development while emitting `.js` paths for the deployed function. The deployment regression runs the real Vercel rewrite compiler and the emitted JavaScript API with an isolated in-memory database, without a TypeScript loader. It checks nested paths, documented query parameters and rejection of arbitrary cache-busting parameters.
 
 ## Setup
 

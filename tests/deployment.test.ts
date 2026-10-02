@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import ts from 'typescript';
+import { convertRewrites } from '@vercel/routing-utils';
 
 test('emitted JavaScript API starts without a TypeScript loader and serves nested routes', () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -37,6 +38,8 @@ test('emitted JavaScript API starts without a TypeScript loader and serves neste
     }
     copyFileSync(join(root, 'server/literature.json'), join(output, 'server/literature.json'));
     writeFileSync(join(output, 'package.json'), JSON.stringify({ type: 'module' }));
+    const deployment = JSON.parse(readFileSync(join(root, 'vercel.json'), 'utf8'));
+    const edgeRoutes = convertRewrites(deployment.rewrites);
     const result = spawnSync(
       process.execPath,
       [
@@ -47,7 +50,21 @@ test('emitted JavaScript API starts without a TypeScript loader and serves neste
       import { createServer } from 'node:http';
       import { once } from 'node:events';
       import handler from './api/index.js';
-      const server = createServer(handler);
+      const edgeRoutes = ${JSON.stringify(edgeRoutes)};
+      const server = createServer((req, res) => {
+        const original = new URL(req.url, 'http://localhost');
+        const route = edgeRoutes.find(route => new RegExp(route.src).test(original.pathname));
+        assert.ok(route, 'The deployed rewrite must match this API request.');
+        const match = new RegExp(route.src).exec(original.pathname);
+        const target = new URL(route.dest.replace(/\\$(\\d+)/g, (_, index) =>
+          encodeURIComponent(match[Number(index)] ?? '')), 'http://localhost');
+        assert.equal(target.pathname, '/api/index');
+        // Vercel retains the incoming pathname for Express, but adds any unused
+        // named rewrite captures to its query. Use the real compiler's output.
+        for (const [key, value] of target.searchParams) original.searchParams.append(key, value);
+        req.url = original.pathname + original.search;
+        return handler(req, res);
+      });
       server.listen(0, '127.0.0.1');
       await once(server, 'listening');
       const base = 'http://127.0.0.1:' + server.address().port;
@@ -65,6 +82,14 @@ test('emitted JavaScript API starts without a TypeScript loader and serves neste
         assert.equal(data.contributions.length, 0);
         const filtered = await fetch(base + '/api/v1/tasks?field=batteries');
         assert.equal(filtered.status, 200);
+        assert.equal((await filtered.json()).total, 2);
+        const context = await fetch(base + '/api/v1/tasks/battery-metadata-map/context?max_bytes=4096');
+        assert.equal(context.status, 200);
+        const packet = await context.json();
+        assert.equal(packet.budget.maxBytes, 4096);
+        const unique = await fetch(base + '/api/v1/snapshot?nonce=unique');
+        assert.equal(unique.status, 400);
+        assert.equal((await unique.json()).error.code, 'invalid_query');
         const unknown = await fetch(base + '/api/v1/unknown');
         assert.equal(unknown.status, 404);
         assert.equal((await unknown.json()).error.code, 'endpoint_not_found');
