@@ -779,7 +779,7 @@ const principles = [
   },
   {
     title: 'A narrow, reviewed scope',
-    body: 'The launch focuses on public-data audits and computational methods. Biology, clinical advice, hazardous synthesis, and infrastructure exploitation are outside this MVP.',
+    body: 'The community currently focuses on public-data audits and computational methods. Biology, clinical advice, hazardous synthesis, and infrastructure exploitation are outside its scope.',
   },
   {
     title: 'Untrusted text stays data',

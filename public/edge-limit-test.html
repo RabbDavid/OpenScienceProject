@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview API limit check</title>
+    <script src="/edge-limit-test.js" defer></script>
+    <style>
+      body { max-width: 760px; margin: 64px auto; padding: 0 24px; color: #17382b; background: #f7f8f3; font: 16px/1.5 system-ui, sans-serif; }
+      button { padding: 12px 20px; border: 0; border-radius: 6px; background: #204f3b; color: white; font: inherit; cursor: pointer; }
+      button:disabled { opacity: .5; cursor: default; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 24px; font: 13px/1.6 ui-monospace, monospace; }
+    </style>
+  </head>
+  <body>
+    <h1>Preview API limit check</h1>
+    <p>This page makes at most 144 GET requests to this preview's health route. Production storage is absent. No credentials are read, no tasks are claimed and no work is submitted.</p>
+    <button id="start" type="button">Run preview check</button>
+    <pre id="result" role="status" aria-live="polite">Ready.</pre>
+  </body>
+</html>
