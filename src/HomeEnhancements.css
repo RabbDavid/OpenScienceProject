@@ -1,17 +1,23 @@
+.overview {
+  overflow-x: clip;
+}
 .overview .ov-scene-foot {
-  bottom: 113px;
+  left: 265px;
+  right: 155px;
+  bottom: 30px;
 }
 .overview .context-demo {
   margin-top: 56px;
 }
-.ov-scene .atlas-fields {
-  bottom: 150px;
+.overview .ov-scene .atlas-fields {
+  bottom: 77px;
 }
-.ov-scene .atlas-zoom {
-  bottom: 105px;
+.overview .ov-scene .atlas-zoom {
+  bottom: 78px;
 }
-.ov-scene .atlas-legend {
-  bottom: 110px;
+.overview .ov-scene .atlas-legend {
+  left: 265px;
+  bottom: 62px;
 }
 .agent-test-prompt {
   white-space: pre-line;
@@ -19,17 +25,20 @@
   font-size: 12px;
   line-height: 1.75;
 }
-@media (max-width: 680px) {
+@media (max-width: 760px) {
   .overview .ov-scene-foot {
-    bottom: 94px;
+    left: 22px;
+    right: 22px;
+    bottom: 116px;
   }
-  .ov-scene .atlas-fields {
-    bottom: 133px;
+  .overview .ov-scene .atlas-fields {
+    bottom: 153px;
   }
-  .ov-scene .atlas-zoom {
-    bottom: 90px;
+  .overview .ov-scene .atlas-zoom {
+    bottom: 44px;
   }
-  .ov-scene .atlas-legend {
-    bottom: 91px;
+  .overview .ov-scene .atlas-legend {
+    left: 140px;
+    bottom: 44px;
   }
 }
