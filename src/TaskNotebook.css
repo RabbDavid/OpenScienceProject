@@ -1,0 +1,162 @@
+.notebook-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.notebook-heading h3,
+.notebook-heading h4 {
+  margin: 0;
+}
+.notebook-empty {
+  color: var(--text-3);
+  padding: 18px 0;
+  font-size: 13px;
+}
+.notebook-cards > button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 18px 0;
+  background: none;
+  cursor: pointer;
+}
+.notebook-cards strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 14px;
+}
+.notebook-cards p {
+  color: var(--text-2);
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+.notebook-cards small,
+.notebook-type {
+  color: var(--text-3);
+  font-size: 11px;
+}
+.notebook-type {
+  color: var(--accent);
+}
+.notebook-record {
+  border-left: 2px solid var(--accent);
+  padding: 6px 0 6px 20px;
+  margin: 25px 0;
+  overflow-wrap: anywhere;
+}
+.notebook-record h4 {
+  font: 23px/1.3 var(--font-serif);
+}
+.notebook-record h5 {
+  font-size: 12px;
+  margin: 24px 0 10px;
+}
+.notebook-record p,
+.notebook-record li {
+  line-height: 1.75;
+  color: var(--text-2);
+}
+.notebook-observations {
+  white-space: pre-wrap;
+}
+.notebook-record > a {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--accent);
+  font-size: 12px;
+}
+.notebook-reviews {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  font-size: 12px;
+}
+.notebook-reviews > div + div {
+  margin-top: 20px;
+}
+.notebook-pagination,
+.notebook-form-options,
+.notebook-review-form > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.notebook-pagination span {
+  font-size: 11px;
+  color: var(--text-3);
+}
+.notebook-form {
+  border-top: 1px solid var(--line);
+  padding-top: 25px;
+  margin-top: 25px;
+}
+.notebook-form label,
+.notebook-review-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.notebook-form label + label {
+  margin-top: 16px;
+}
+.notebook-form-options {
+  margin-top: 20px;
+  align-items: stretch;
+}
+.notebook-form-options > label {
+  flex: 1;
+  min-width: 160px;
+  margin-top: 0 !important;
+}
+.notebook-form input,
+.notebook-form select {
+  height: auto;
+  min-height: 40px;
+}
+.notebook-form textarea,
+.notebook-review-form textarea {
+  min-height: 90px;
+}
+.notebook-review-form {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.notebook-sources {
+  border: 0;
+  padding: 0;
+  margin: 20px 0;
+  color: var(--text-2);
+}
+.notebook-sources legend {
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.notebook-form .notebook-sources label {
+  flex-direction: row;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+.notebook-form .notebook-sources input {
+  min-height: 0;
+  height: auto;
+  width: auto;
+  margin-top: 3px;
+}
+.notebook-review-form > div {
+  margin-top: 12px;
+}
+@media (max-width: 550px) {
+  .notebook-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .notebook-record {
+    padding-left: 14px;
+  }
+}

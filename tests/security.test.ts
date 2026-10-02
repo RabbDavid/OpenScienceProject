@@ -42,6 +42,7 @@ test('private reads enforce a key on every API discovery and content route, incl
     '/api/v1/fields',
     '/api/v1/projects',
     '/api/v1/projects/materials-evaluation?max_bytes=4096',
+    '/api/v1/tasks/matbench-split-audit/notes',
     '/api/v1/tasks?project=materials-evaluation',
     '/api/v1/sources',
     '/api/v1/papers',

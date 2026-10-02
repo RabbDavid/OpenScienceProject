@@ -13,6 +13,8 @@ The server's protocol tests establish MCP compatibility, not that a particular C
 
 ## Tools
 
+The public endpoint has 14 read-only tools, including `list_task_notes(task_id,limit,offset)` and `get_task_note(note_id,max_bytes)`. The former returns cards with exact visible counts and pagination. The latter returns immutable content and review decisions within a 1536–64000-byte budget. Notes are observations; `retained` means kept for follow-up. Source candidates remain unapproved for task citations. Public tools exclude held and risk-flagged notes even with a curator key.
+
 | Tool                    | Purpose                                                           | Bounds                                                                    |
 | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `get_research_overview` | Fields and required policy                                        | No arguments; no corpus dump                                              |
@@ -51,6 +53,12 @@ The root manifest uses the portable Agent Plugins format and OpenAI interface me
 The server advertises `capabilities.extensions["io.modelcontextprotocol/skills"]`, supports `skills/list` and `skills/get`, and serves the same UTF-8 skill via `resources/read`. Discovery includes a SHA-256 digest. The package and server resource share one source of truth in `server/plugin.ts`. No operator files, credentials, database contents, hooks or executable scripts enter the archive.
 
 ## Access and operational limits
+
+### Separate invited notebook endpoint
+
+`https://openscienceplatform.vercel.app/api/mcp/contribute` requires operator-issued bearer authentication on every request and exposes 16 tools: the reads plus `append_task_note` and `propose_source`. These two tools declare write behavior and accept camelCase HTTP-schema fields, including a current `expectedTaskRevision`, stable `idempotencyKey`, explicit risk and contributor declaration. They persist at most 4096 normalized UTF-8 input bytes under CC-BY-4.0. They do not claim tasks, submit formal scientific contributions, review, approve sources, execute code or fetch candidate URLs. Invited notebook reads can see records permitted to that identity.
+
+This is usable with an MCP client that securely supplies an Authorization header. The existing no-auth ChatGPT connection remains read-only. OAuth onboarding for ChatGPT writes is not implemented; do not switch it to this endpoint without a supported secure authentication mechanism. The portable ZIP continues to point to the public read-only endpoint. HTTP and human website notebook flows use the same persisted records and permissions.
 
 The current public connection uses no authentication and exposes public research only. `PRIVATE_READS=1` guards MCP initialization, discovery, tool calls and resource reads over POST with the existing operator-issued bearer authentication. A public no-auth ChatGPT configuration cannot access a private instance; OAuth onboarding is not implemented. Do not paste operator keys into chat or URLs to bypass this boundary.
 

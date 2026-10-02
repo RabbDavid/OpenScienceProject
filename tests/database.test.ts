@@ -102,7 +102,7 @@ test('migration 3 adds interpretability questions without changing existing defi
       Number(
         (await store.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get())?.version,
       ),
-      4,
+      5,
     );
     assert.equal((await store.tasks()).filter((task) => task.fieldId === 'mechinterp').length, 2);
     await store.close();

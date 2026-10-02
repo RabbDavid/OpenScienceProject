@@ -124,6 +124,54 @@ export interface Review {
   rationale: string;
   createdAt: string;
 }
+export type NoteStatus = 'unreviewed' | 'retained' | 'dismissed' | 'held';
+export interface ResearchNote {
+  id: string;
+  taskId: string;
+  taskRevision: number;
+  kind: 'handoff' | 'source_candidate';
+  title: string;
+  summary: string;
+  observations?: string;
+  negativeResults?: string[];
+  unresolved?: string[];
+  sourcesSeen?: string[];
+  url?: string;
+  rationale?: string;
+  supersedesNoteId?: string;
+  risk: 'low' | 'uncertain' | 'high';
+  origin: 'agent' | 'human' | 'human_with_ai' | 'unspecified';
+  model?: string;
+  authorId: string;
+  authorName: string;
+  status: NoteStatus;
+  reviewRevision: number;
+  createdAt: string;
+  contentHash: string;
+}
+export type NoteCard = Pick<
+  ResearchNote,
+  | 'id'
+  | 'taskId'
+  | 'kind'
+  | 'title'
+  | 'summary'
+  | 'status'
+  | 'authorName'
+  | 'createdAt'
+  | 'reviewRevision'
+  | 'risk'
+>;
+export interface NoteReview {
+  id: string;
+  noteId: string;
+  revision: number;
+  reviewerId: string;
+  reviewerName: string;
+  decision: 'retain' | 'dismiss' | 'hold';
+  rationale: string;
+  createdAt: string;
+}
 export interface Event {
   id: number;
   type: string;
@@ -149,6 +197,15 @@ export interface ContextPacket {
   skills: { id: string; steps: string[] }[];
   sources: Pick<Source, 'id' | 'title' | 'url' | 'locator'>[];
   priorWork: Pick<Contribution, 'id' | 'title' | 'status' | 'revision'>[];
+  researchState: {
+    visibleContributions: number;
+    visibleNotes: number;
+    notes: Pick<NoteCard, 'id' | 'kind' | 'title' | 'status'>[];
+    contributionsOmitted: number;
+    notesOmitted: number;
+    coverage: string;
+    lastUpdated: string | null;
+  };
   next: {
     project?: string;
     claim: string;
@@ -157,6 +214,7 @@ export interface ContextPacket {
     relatedWork: string;
     skills: string;
     literature: string;
+    notebook: string;
   };
   budget: {
     maxBytes: number;

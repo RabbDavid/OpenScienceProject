@@ -33,11 +33,11 @@ export class Store {
       'CREATE TABLE IF NOT EXISTS schema_metadata (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)',
     );
     const version = await this.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get();
-    if (Number(version?.version) >= 4) return;
+    if (Number(version?.version) >= 5) return;
     await this.db.transaction(async () => {
       const current = await this.db.prepare('SELECT version FROM schema_metadata WHERE id=1').get();
       const currentVersion = Number(current?.version ?? 0);
-      if (currentVersion >= 4) return;
+      if (currentVersion >= 5) return;
       if (currentVersion < 2) {
         await this.db.exec(`
       CREATE TABLE IF NOT EXISTS actors (id TEXT PRIMARY KEY, name TEXT NOT NULL, normalized_name TEXT UNIQUE NOT NULL);
@@ -88,9 +88,29 @@ export class Store {
             await update.run(JSON.stringify({ ...task, fieldId: 'materials' }), row.id);
         }
       }
+      if (currentVersion < 5) {
+        await this.db.exec(`
+          CREATE TABLE IF NOT EXISTS research_notes (
+            id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES tasks(id),
+            author_id TEXT NOT NULL REFERENCES actors(id), payload TEXT NOT NULL,
+            content_hash TEXT NOT NULL, request_hash TEXT NOT NULL,
+            idempotency_hash TEXT NOT NULL, risk TEXT NOT NULL CHECK(risk IN ('low','uncertain','high')),
+            status TEXT NOT NULL CHECK(status IN ('unreviewed','retained','dismissed','held')),
+            review_revision INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL,
+            UNIQUE(author_id,idempotency_hash)
+          );
+          CREATE INDEX IF NOT EXISTS research_notes_task ON research_notes(task_id,created_at,id);
+          CREATE TABLE IF NOT EXISTS note_reviews (
+            id TEXT PRIMARY KEY, note_id TEXT NOT NULL REFERENCES research_notes(id),
+            revision INTEGER NOT NULL, reviewer_id TEXT NOT NULL REFERENCES actors(id),
+            decision TEXT NOT NULL CHECK(decision IN ('retain','dismiss','hold')),
+            rationale TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(note_id,revision)
+          );
+        `);
+      }
       await this.db
         .prepare(
-          'INSERT INTO schema_metadata(id,version) VALUES (1,4) ON CONFLICT(id) DO UPDATE SET version=excluded.version',
+          'INSERT INTO schema_metadata(id,version) VALUES (1,5) ON CONFLICT(id) DO UPDATE SET version=excluded.version',
         )
         .run();
     });

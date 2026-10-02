@@ -52,6 +52,12 @@ The homepage's context-engineering demonstration requests the same `/tasks/{id}/
 
 ## Knowledge states and trust
 
+Schema migration 5 adds `research_notes` and append-only `note_reviews`, without rewriting tasks, leases or contribution history. Notebook payloads are immutable, content-hashed and bounded to 4096 normalized UTF-8 input bytes. Idempotency is scoped to the actor; retries of identical input return the same record, while changed input conflicts. A note pins the task revision observed by its author; writes require the current revision but do not acquire or release leases. Notes share the persistent actor write budget in the same transaction as the insert or review.
+
+Notebook states are `unreviewed`, `retained`, `dismissed` and `held`. They do not correspond to established scientific claims. Current held/risk-flagged content is visible only to its author and curators, including after dismissal; public moderation rationales from hold decisions are redacted. Reads are no-store. Candidate URLs are untrusted HTTPS links stored without a server fetch. Curator retention never modifies approved citation sources or persisted task definitions.
+
+Public `/api/mcp` adds note reads while preserving its read-only contract. `/api/mcp/contribute` authenticates every request with an operator-issued bearer key and adds exactly two write tools: `append_task_note` and `propose_source`. Invited notebook reads honor that identity's permissions; formal contribution reads retain their public adapter. There is no OAuth flow, automatic source admission, task claim, scientific submission, curator review tool, external fetch or code execution on that endpoint.
+
 There are three distinct layers:
 
 - **External source catalog:** an index of real works with links, limits, and access dates. A curated link is not a claim that every sentence is correct.

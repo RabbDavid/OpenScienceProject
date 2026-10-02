@@ -2,6 +2,7 @@ import { sources, skills, policy } from './catalog.ts';
 import { projectForTask } from '../shared/projects.ts';
 import type { ContextPacket } from '../shared/types.ts';
 import { Store, ApiError } from './store.ts';
+import { Notebook } from './notebook.ts';
 export async function contextPacket(
   store: Store,
   taskId: string,
@@ -28,6 +29,7 @@ export async function contextPacket(
     priorWork: (
       await store.contributions(undefined, 5, 0, taskId, { actorId: '', curator: false })
     ).map(({ id, title, status, revision }) => ({ id, title, status, revision })),
+    researchState: await new Notebook(store).researchState(taskId),
     next: {
       ...(projectForTask(taskId)
         ? { project: `/api/v1/projects/${projectForTask(taskId)!.id}?max_bytes=4096` }
@@ -38,6 +40,7 @@ export async function contextPacket(
       relatedWork: `/api/v1/contributions?task=${taskId}`,
       skills: `/api/v1/skills?ids=${task.skillIds.join(',')}`,
       literature: `/api/v1/papers?field=${task.fieldId}&limit=10`,
+      notebook: `/api/v1/tasks/${taskId}/notes?limit=5`,
     },
     budget: {
       maxBytes,
@@ -47,6 +50,13 @@ export async function contextPacket(
       truncated: false,
     },
   };
+  const updateCoverage = () => {
+    packet.researchState.notesOmitted =
+      packet.researchState.visibleNotes - packet.researchState.notes.length;
+    packet.researchState.contributionsOmitted =
+      packet.researchState.visibleContributions - packet.priorWork.length;
+  };
+  updateCoverage();
   const measure = () => {
     for (let i = 0; i < 6; i++) {
       const actualBytes = Buffer.byteLength(JSON.stringify(packet));
@@ -55,10 +65,15 @@ export async function contextPacket(
     }
     return Buffer.byteLength(JSON.stringify(packet));
   };
-  while (measure() > maxBytes && (packet.priorWork.length || packet.skills.length)) {
-    if (packet.priorWork.length) packet.priorWork.pop();
+  while (
+    measure() > maxBytes &&
+    (packet.priorWork.length || packet.skills.length || packet.researchState.notes.length)
+  ) {
+    if (packet.researchState.notes.length) packet.researchState.notes.pop();
+    else if (packet.priorWork.length) packet.priorWork.pop();
     else packet.skills.pop();
     packet.budget.truncated = true;
+    updateCoverage();
   }
   if (measure() > maxBytes)
     throw new ApiError(

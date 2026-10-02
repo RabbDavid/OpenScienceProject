@@ -42,6 +42,7 @@ import type {
   Task,
 } from '../shared/types.ts';
 import { PUBLIC_SITE_ORIGIN, agentInstruction, agentTestPrompt } from './site.ts';
+import { TaskNotebook } from './TaskNotebook.tsx';
 
 export interface ConnectedIdentity {
   id: string;
@@ -211,18 +212,20 @@ export function TaskDialog({
     .slice(0, 4);
   const [context, setContext] = useState<ContextPacket | null>(null);
   const [showContext, setShowContext] = useState(false);
+  const [notebookVersion, setNotebookVersion] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const field = data.fields.find((f) => f.id === task.fieldId)!;
   useEffect(() => {
     const controller = new AbortController();
-    api<ContextPacket>(`/tasks/${task.id}/context`, { signal: controller.signal })
+    setContext(null);
+    api<ContextPacket>(`/tasks/${task.id}/context`, { signal: controller.signal, key: apiKey })
       .then(setContext)
       .catch((err) => {
         if (err.name !== 'AbortError') setError(err.message);
       });
     return () => controller.abort();
-  }, [task.id]);
+  }, [task.id, apiKey, notebookVersion]);
   const claim = async () => {
     if (!identity) {
       onConnect();
@@ -231,7 +234,7 @@ export function TaskDialog({
     setPending(true);
     setError('');
     try {
-      const latest = await api<Task>(`/tasks/${task.id}`);
+      const latest = await api<Task>(`/tasks/${task.id}`, { key: apiKey });
       const lease = await api<Lease>(`/tasks/${task.id}/claim`, {
         method: 'POST',
         key: apiKey,
@@ -293,6 +296,14 @@ export function TaskDialog({
         </div>
       </dl>
       <p className="drawer-text">{task.description}</p>
+      <TaskNotebook
+        task={task}
+        apiKey={apiKey}
+        identity={identity}
+        onConnect={onConnect}
+        sources={data.sources.filter((source) => task.sourceIds.includes(source.id))}
+        onSaved={() => setNotebookVersion((value) => value + 1)}
+      />
       <section className="drawer-section">
         <h3>
           <CheckCircle2 size={15} /> What useful work looks like

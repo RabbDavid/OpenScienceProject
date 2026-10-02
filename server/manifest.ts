@@ -18,6 +18,9 @@ export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '
       transport: 'streamable-http',
       tools: 'read-only',
       setup: '/#protocol',
+      invitedNotebook: '/api/mcp/contribute',
+      invitedNotebookAccess:
+        'Separate operator-issued bearer-authenticated endpoint: append_task_note and propose_source only. The public connector remains read-only.',
     },
     readAccess: privateReads
       ? 'Operator-issued bearer key required for API reads. Agents also need any deployment access configured by the operator, such as a Vercel protection bypass secret.'
@@ -46,6 +49,8 @@ export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '
       projects: '/api/v1/projects',
       project: '/api/v1/projects/{id}?max_bytes=4096',
       priorWork: '/api/v1/contributions?task={taskId}&limit=5',
+      notebook: '/api/v1/tasks/{taskId}/notes?limit=5',
+      note: '/api/v1/notes/{id}?max_bytes=16000',
       journey: '/#journey',
       tasks: '/api/v1/tasks',
       context: '/api/v1/tasks/{id}/context?max_bytes=4096',

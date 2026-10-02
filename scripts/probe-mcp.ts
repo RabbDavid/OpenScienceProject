@@ -64,7 +64,7 @@ try {
   );
   kind = 'tools/list';
   const tools = (await client.listTools()).tools;
-  assert.equal(tools.length, 12);
+  assert.equal(tools.length, 14);
   assert.ok(
     tools.every(
       (tool) => tool.annotations?.readOnlyHint && tool.annotations?.destructiveHint === false,
@@ -118,6 +118,8 @@ try {
     first ??= packet;
   }
   if (first) {
+    const notes = await call('list_task_notes', { task_id: first.task.id, limit: 1 });
+    assert.equal(notes.recordKind, 'research_notes');
     const priorWork = await call('list_contributions', { task_id: first.task.id, limit: 1 });
     if (priorWork.items.length) {
       const work = await call('get_contribution', {

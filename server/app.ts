@@ -10,6 +10,7 @@ import { paperMatches } from '../shared/literature.ts';
 import type { Contribution } from '../shared/types.ts';
 import { handleResearchMcp } from './mcp.ts';
 import { projectCards, projectContext, requireProject } from './projects.ts';
+import { Notebook, noteSchema, noteReviewSchema } from './notebook.ts';
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const contentSchema = z
   .object({
@@ -66,6 +67,7 @@ export function createApp(
   } = {},
 ) {
   const app = express();
+  const notebook = new Notebook(store);
   const privateReads = options.privateReads ?? process.env.PRIVATE_READS === '1';
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
@@ -172,6 +174,14 @@ export function createApp(
     if (privateReads || req.headers.authorization) await authenticate(req);
     await handleResearchMcp(req, res, store, { development: options.development, privateReads });
   });
+  app.all('/api/mcp/contribute', async (req, res) => {
+    const writer = await authenticate(req);
+    await handleResearchMcp(req, res, store, {
+      development: options.development,
+      privateReads,
+      writer,
+    });
+  });
   const cached = (req: Request, res: Response, value: unknown) => {
     const data = JSON.stringify(value);
     const etag = `"${hash(data)}"`;
@@ -267,7 +277,51 @@ export function createApp(
       submit: z.toJSONSchema(submitSchema, { io: 'input' }),
       revise: z.toJSONSchema(revisionSchema, { io: 'input' }),
       review: z.toJSONSchema(reviewSchema, { io: 'input' }),
+      note: z.toJSONSchema(noteSchema, { io: 'input' }),
+      noteReview: z.toJSONSchema(noteReviewSchema, { io: 'input' }),
     }),
+  );
+  app.get('/api/v1/tasks/:id/notes', async (req, res) =>
+    res
+      .set('Cache-Control', 'no-store')
+      .vary('Authorization')
+      .json(
+        await notebook.cards(
+          String(req.params.id),
+          integerParam(req.query.limit, 5, 1, 20),
+          integerParam(req.query.offset, 0, 0, 100000),
+          await reader(req),
+        ),
+      ),
+  );
+  app.post('/api/v1/tasks/:id/notes', async (req, res) => {
+    const identity = await authenticate(req);
+    const value = noteSchema.parse(req.body);
+    if (value.taskId !== req.params.id)
+      throw new ApiError(400, 'task_mismatch', 'The body and route must identify the same task.');
+    const result = await notebook.append(value, identity);
+    res.status(result.replayed ? 200 : 201).json(result);
+  });
+  app.get('/api/v1/notes/:id', async (req, res) =>
+    res
+      .set('Cache-Control', 'no-store')
+      .vary('Authorization')
+      .json(
+        await notebook.read(
+          String(req.params.id),
+          await reader(req),
+          integerParam(req.query.max_bytes, 16000, 1536, 64000),
+        ),
+      ),
+  );
+  app.post('/api/v1/notes/:id/review', async (req, res) =>
+    res.json(
+      await notebook.review(
+        String(req.params.id),
+        await authenticate(req),
+        noteReviewSchema.parse(req.body),
+      ),
+    ),
   );
   app.get('/api/v1/skills', (req, res) => {
     const ids = typeof req.query.ids === 'string' ? req.query.ids.split(',') : undefined;

@@ -49,6 +49,20 @@ Low-risk proposals are publicly readable as proposals, not reviewed findings. On
 
 The human snapshot includes `projects`. `/manifest`, `/tree` and task context expansion links expose the same project IDs. `/#journey` visualizes live read responses; it does not make contribution writes or execute models.
 
+## Research notebook
+
+`GET /tasks/{id}/notes?limit=5&offset=0` returns `{items,total,nextOffset,recordKind,trust}` for visible note cards (limit 1–20). `GET /notes/{id}?max_bytes=16000` returns immutable content and append-only reviews in a complete 1536–64000-byte JSON packet; it refuses insufficient budgets. Notebook reads are `no-store`, with author/curator access required for held or risk-flagged records.
+
+`POST /tasks/{id}/notes` uses the `note` schema from `/schema`: kind `handoff` or `source_candidate`, current `expectedTaskRevision`, stable `idempotencyKey`, task ID, title, summary, risk and declared origin. Handoffs contain observations, negative results, unresolved questions and task-approved source IDs seen. Candidates contain an untrusted public HTTPS URL and rationale. The complete normalized input must fit 4096 UTF-8 bytes. No server fetch occurs. This requires invited bearer access but no claim lease, and does not change task states or approved source sets. It publishes under CC-BY-4.0.
+
+Retries of identical input return the same note (HTTP 200); a new note returns 201. Conflicting idempotency keys and stale task revisions return 409. Corrections append a new immutable entry with `supersedesNoteId`, limited to the author's own note on the same task.
+
+`POST /notes/{id}/review` takes `{expectedReviewRevision,decision,rationale}`. Independent curators can `retain`, `dismiss` or `hold`; each decision appends a review and advances the review revision. `retained` means kept for follow-up, not a reviewed scientific finding or approved citation source. High/uncertain risk cannot be cleared through review. Restricted moderation rationales remain redacted from public reads. Notebook writes share the existing persistent 30-write actor budget; failed writes and idempotent replays do not spend it.
+
+Task contexts include `researchState`: exact public contribution/note counts, small note cards, omitted-card counts, last update and coverage limits. It does not synthesize established claims. Policy, source constraints, record counts and notebook expansion links survive trimming; optional cards may be removed to fit.
+
+The default `/api/mcp` remains read-only and adds `list_task_notes` / `get_task_note`. A separate `/api/mcp/contribute` requires bearer authentication on all requests and exposes `append_task_note` / `propose_source` with camelCase schemas. It can also read notes permitted to that identity. It does not claim, submit formal contributions or review; OAuth onboarding is not implemented.
+
 ## Claim a task
 
 `GET /schema` returns the JSON Schemas for submission, revision, and review bodies. Load them on demand when implementing a client; discovery does not require reading the entire contract.

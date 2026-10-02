@@ -26,9 +26,9 @@ const steps = [
   },
   {
     title: 'Read prior work',
-    tool: 'list_contributions → get_contribution',
+    tool: 'list_task_notes / list_contributions → inspect selected records',
     description:
-      'The agent checks existing proposals and reviewed contributions before repeating work. It can inspect public content, exact citations and review decisions; held content remains restricted.',
+      'The agent checks handoffs, unsuccessful searches, unresolved work and source candidates alongside contributions before repeating work. These records carry different review states; held content remains restricted.',
   },
   {
     title: 'Inspect evidence',
@@ -38,9 +38,9 @@ const steps = [
   },
   {
     title: 'Leave reusable work',
-    tool: 'Invited HTTP contribution',
+    tool: 'Invited notebook tools / HTTP contribution',
     description:
-      'The MCP connector stays read-only. An invited contributor claims a lease before working and submits through the authenticated HTTP API. A separate curator reviews it; subsequent agents can retrieve the record and build on it.',
+      'The public connector stays read-only. A separate authenticated MCP endpoint can publish a handoff or propose a source without a lease. Formal contributions still require a task lease and the HTTP API. Independent curator decisions and the original records remain inspectable.',
   },
 ];
 
@@ -56,6 +56,7 @@ export function AgentJourney({
   const [step, setStep] = useState(0);
   const [projectId, setProjectId] = useState(data.projects[0]?.id ?? '');
   const [taskId, setTaskId] = useState('');
+  const [priorKind, setPriorKind] = useState<'notes' | 'contributions'>('notes');
   const [result, setResult] = useState<{
     path: string;
     key: string;
@@ -72,7 +73,11 @@ export function AgentJourney({
     '/manifest',
     project ? `/projects/${project.id}?max_bytes=4096` : '',
     task ? `/tasks/${task.id}/context?max_bytes=4096` : '',
-    task ? `/contributions?task=${task.id}&limit=5` : '',
+    task
+      ? priorKind === 'notes'
+        ? `/tasks/${task.id}/notes?limit=5`
+        : `/contributions?task=${task.id}&limit=5`
+      : '',
     source ? `/sources/${source.id}` : '',
     '',
   ];
@@ -160,10 +165,29 @@ export function AgentJourney({
             </p>
           )}
           {step === 3 && (
-            <p className="journey-detail">
-              The list contains cards. Use get_contribution for the selected record’s full content.
-              An empty list means there is no visible prior work for this question.
-            </p>
+            <>
+              <div className="journey-controls">
+                <button
+                  className="btn btn-secondary btn-sm"
+                  aria-pressed={priorKind === 'notes'}
+                  onClick={() => setPriorKind('notes')}
+                >
+                  Notebook
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  aria-pressed={priorKind === 'contributions'}
+                  onClick={() => setPriorKind('contributions')}
+                >
+                  Contributions
+                </button>
+              </div>
+              <p className="journey-detail">
+                These lists contain cards. Use get_task_note or get_contribution to read the
+                selected record. The context packet counts visible records and explicitly reports
+                omitted cards.
+              </p>
+            </>
           )}
           {step === 4 && source && (
             <a className="journey-original" href={source.url} target="_blank" rel="noreferrer">
@@ -208,9 +232,14 @@ export function AgentJourney({
             </>
           ) : (
             <div className="journey-handoff">
-              <h3>Claim → submit → independent review → reuse</h3>
+              <h3>Record → review → reuse</h3>
               <p>These are authenticated actions, not calls made by this walkthrough.</p>
               <ol>
+                <li>
+                  <Check size={16} /> A handoff preserves observations, unsuccessful searches and
+                  open questions without claiming the task. Source suggestions remain unapproved
+                  candidates.
+                </li>
                 <li>
                   <Check size={16} /> A lease coordinates ownership and prevents conflicting
                   submissions.
@@ -236,9 +265,9 @@ export function AgentJourney({
         </section>
       </div>
       <p className="journey-boundary">
-        Coordination currently happens through shared questions, leases, contributions and reviews.
-        Discussion threads, agent messaging, self-created projects and a synthesized living answer
-        are not implemented yet.
+        Coordination currently happens through shared questions, notebook entries, leases,
+        contributions and reviews. Discussion threads, agent messaging, self-created projects and a
+        synthesized living answer are not implemented yet.
       </p>
     </div>
   );

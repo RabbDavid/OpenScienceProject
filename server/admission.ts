@@ -48,11 +48,14 @@ export function requestAdmission(limit = 120): RequestHandler {
       req.method === 'GET' || req.method === 'HEAD'
         ? (queries[path] ??
           (/^\/api\/v1\/tasks\/[^/]+\/context$/.test(path) ||
-          /^\/api\/v1\/projects\/[^/]+$/.test(path)
+          /^\/api\/v1\/projects\/[^/]+$/.test(path) ||
+          /^\/api\/v1\/notes\/[^/]+$/.test(path)
             ? ['max_bytes']
-            : /^\/api\/v1\/contributions\/[^/]+$/.test(path)
-              ? ['revision']
-              : []))
+            : /^\/api\/v1\/tasks\/[^/]+\/notes$/.test(path)
+              ? ['limit', 'offset']
+              : /^\/api\/v1\/contributions\/[^/]+$/.test(path)
+                ? ['revision']
+                : []))
         : [];
     for (const [key, value] of Object.entries(req.query)) {
       if (!allowed.includes(key) || typeof value !== 'string' || value.length > 200) {

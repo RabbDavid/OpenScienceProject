@@ -74,9 +74,11 @@ test('real MCP client discovers all fields and bounded context without modifying
     'get_question_context',
     'get_research_overview',
     'get_source',
+    'get_task_note',
     'list_contributions',
     'list_projects',
     'list_questions',
+    'list_task_notes',
     'search',
     'search_literature',
   ]);
