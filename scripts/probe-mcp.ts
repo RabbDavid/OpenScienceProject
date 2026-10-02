@@ -64,7 +64,7 @@ try {
   );
   kind = 'tools/list';
   const tools = (await client.listTools()).tools;
-  assert.equal(tools.length, 8);
+  assert.equal(tools.length, 12);
   assert.ok(
     tools.every(
       (tool) => tool.annotations?.readOnlyHint && tool.annotations?.destructiveHint === false,
@@ -77,6 +77,16 @@ try {
     'mechinterp',
     'solar',
   ]);
+  const projectCards = await call('list_projects');
+  assert.equal(projectCards.items.length, 4);
+  const project = await call('get_project', {
+    project_id: projectCards.items[0].id,
+    max_bytes: 4096,
+  });
+  assert.equal(project.recordKind, 'curated_research_direction');
+  assert.ok(project.successCriteria.length && project.questions.length && project.scope.length);
+  assert.equal(Buffer.byteLength(JSON.stringify(project)), project.budget.actualBytes);
+  assert.ok(project.budget.actualBytes <= 4096);
   const contexts: Record<string, unknown>[] = [];
   let first: ContextPacket | undefined;
   for (const field of overview.fields) {
@@ -108,6 +118,17 @@ try {
     first ??= packet;
   }
   if (first) {
+    const priorWork = await call('list_contributions', { task_id: first.task.id, limit: 1 });
+    if (priorWork.items.length) {
+      const work = await call('get_contribution', {
+        contribution_id: priorWork.items[0].id,
+        max_bytes: 64000,
+      });
+      assert.equal(work.contribution.risk, 'low');
+      assert.notEqual(work.contribution.status, 'held');
+      assert.equal(Buffer.byteLength(JSON.stringify(work)), work.budget.actualBytes);
+      assert.ok(work.budget.actualBytes <= 64000);
+    }
     const source = await call('get_source', { source_id: first.sources[0].id });
     assert.equal(source.recordKind, 'external_source_catalog');
     kind = 'budget-refusal';

@@ -9,6 +9,7 @@ import { requestAdmission } from './admission.ts';
 import { paperMatches } from '../shared/literature.ts';
 import type { Contribution } from '../shared/types.ts';
 import { handleResearchMcp } from './mcp.ts';
+import { projectCards, projectContext, requireProject } from './projects.ts';
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const contentSchema = z
   .object({
@@ -290,10 +291,29 @@ export function createApp(
         id,
         path,
         scope,
+        projects: `/api/v1/projects?field=${id}`,
         tasks: `/api/v1/tasks?field=${id}`,
         sources: `/api/v1/sources?field=${id}`,
       })),
     }),
+  );
+  app.get('/api/v1/projects', async (req, res) => {
+    const field = req.query.field;
+    if (field !== undefined && !fields.some((item) => item.id === field))
+      throw new ApiError(400, 'invalid_field', 'Unknown field.');
+    const items = await projectCards(store, field as string | undefined);
+    cached(req, res, { items, total: items.length });
+  });
+  app.get('/api/v1/projects/:id', async (req, res) =>
+    cached(
+      req,
+      res,
+      await projectContext(
+        store,
+        String(req.params.id),
+        integerParam(req.query.max_bytes, 4096, 1536, 16000),
+      ),
+    ),
   );
   app.get('/api/v1/sources', (req, res) => {
     const field = req.query.field;
@@ -361,7 +381,10 @@ export function createApp(
     });
   });
   app.get('/api/v1/tasks', async (req, res) => {
-    const { field, status, q } = req.query;
+    const { field, status, q, project } = req.query;
+    if (project !== undefined && typeof project !== 'string')
+      throw new ApiError(400, 'invalid_query', 'Expected a project ID.');
+    const direction = project === undefined ? undefined : requireProject(project);
     if (field !== undefined && !fields.some((f) => f.id === field))
       throw new ApiError(400, 'invalid_field', 'Unknown field.');
     if (status !== undefined && !['open', 'claimed', 'completed'].includes(String(status)))
@@ -373,6 +396,7 @@ export function createApp(
     const matches = (await store.tasks()).filter(
       (t) =>
         (!field || t.fieldId === field) &&
+        (!direction || direction.steps.some((step) => step.taskId === t.id)) &&
         (!status || t.status === status) &&
         (!q || `${t.title} ${t.question}`.toLowerCase().includes(String(q).toLowerCase())),
     );

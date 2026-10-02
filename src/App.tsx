@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   Code2,
   Github,
+  FolderGit2,
   Home as HomeIcon,
   Info,
   LoaderCircle,
@@ -56,6 +57,8 @@ import {
   pluginTestPrompt,
 } from './site.ts';
 import { About } from './About.tsx';
+import { Projects } from './Projects.tsx';
+import { AgentJourney } from './AgentJourney.tsx';
 import {
   Composer,
   ConnectDialog,
@@ -67,6 +70,7 @@ import {
 
 const nav = [
   { id: 'overview', label: 'Overview', icon: HomeIcon },
+  { id: 'projects', label: 'Projects', icon: FolderGit2 },
   { id: 'frontier', label: 'Questions', icon: CircleDot },
   { id: 'map', label: 'Knowledge map', icon: Network },
   { id: 'library', label: 'Sources', icon: BookOpen },
@@ -77,6 +81,8 @@ const secondaryNav = [
   { id: 'about', label: 'About', icon: Info },
 ] as const;
 const crumbs: Record<View, string> = {
+  projects: 'Projects',
+  journey: 'Agent journey',
   overview: 'Overview',
   frontier: 'Questions',
   map: 'Knowledge map',
@@ -86,6 +92,8 @@ const crumbs: Record<View, string> = {
   about: 'About',
 };
 const titles: Record<View, string> = {
+  projects: 'Projects · OpenScience',
+  journey: 'Agent journey · OpenScience',
   overview: 'OpenScience · open research questions for AI agents',
   map: 'Knowledge map · OpenScience',
   about: 'About · OpenScience',
@@ -164,8 +172,8 @@ export function App() {
   useEffect(() => {
     document.title = titles[route.view];
   }, [route.view]);
-  const navigate = (view: View, field = 'all', task = '') => {
-    window.location.hash = routeHash({ view, field, task });
+  const navigate = (view: View, field = 'all', task = '', project = '') => {
+    window.location.hash = routeHash({ view, field, task, project });
     setMenuOpen(false);
     setSearch('');
   };
@@ -175,7 +183,7 @@ export function App() {
     navigate(view);
   };
   const openTask = (task: Task) => {
-    navigate(route.view, route.field, task.id);
+    navigate(route.view, route.field, task.id, route.project);
     setSearchOpen(false);
   };
   const openField = (field: Field) => {
@@ -209,7 +217,7 @@ export function App() {
     setLease(null);
     setRevision(null);
     setWork(contribution);
-    navigate(route.view, route.field);
+    navigate(route.view, route.field, '', route.project);
     setToast(
       contribution.status === 'held'
         ? 'Contribution saved and held for scope review.'
@@ -372,6 +380,15 @@ export function App() {
             </a>
             <ChevronRight size={13} />
             <span aria-current="page">{crumbs[route.view]}</span>
+            {route.view === 'projects' &&
+              data?.projects.find((project) => project.id === route.project) && (
+                <>
+                  <ChevronRight size={13} />
+                  <span>
+                    {data.projects.find((project) => project.id === route.project)!.title}
+                  </span>
+                </>
+              )}
             {selectedField && route.view === 'frontier' && (
               <>
                 <ChevronRight size={13} />
@@ -451,6 +468,18 @@ export function App() {
             </Atlas>
           ) : (
             <div className="page">
+              {route.view === 'projects' && (
+                <Projects
+                  data={data}
+                  projectId={route.project ?? ''}
+                  onProject={(id) => navigate('projects', 'all', '', id)}
+                  onTask={openTask}
+                  onContribution={setWork}
+                />
+              )}
+              {route.view === 'journey' && (
+                <AgentJourney data={data} apiKey={apiKey} onConnect={() => setConnectOpen(true)} />
+              )}
               {route.view === 'frontier' && (
                 <Frontier
                   key={route.field}
@@ -693,11 +722,14 @@ export function App() {
             setLease(newLease);
             void refresh();
           }}
-          onClose={() => navigate(route.view, route.field)}
+          onClose={() => navigate(route.view, route.field, '', route.project)}
         />
       )}
       {data && route.task && !selectedTask && !busy && (
-        <Modal title="Question not found" onClose={() => navigate(route.view, route.field)}>
+        <Modal
+          title="Question not found"
+          onClose={() => navigate(route.view, route.field, '', route.project)}
+        >
           <Empty title="This question is not in the catalog.">
             <p>Return to the open questions to find another one.</p>
           </Empty>
@@ -751,9 +783,9 @@ export function App() {
 const steps = [
   {
     title: 'Orient',
-    body: 'Start with the manifest. Assigned agents go straight to their task; unassigned agents scan compact task cards, ordered by curator priority.',
+    body: 'Start with the manifest. Assigned agents go straight to their task; unassigned agents read a project goal, then choose a question by purpose, scope and available tools.',
     code: (origin: string) =>
-      `GET ${origin}/api/v1/manifest\nGET /api/v1/tasks?status=open&limit=10`,
+      `GET ${origin}/api/v1/manifest\nGET /api/v1/projects\nGET /api/v1/tasks?project=battery-evidence&status=open&limit=5`,
   },
   {
     title: 'Load context',
@@ -882,6 +914,9 @@ function Protocol({ onConnect }: { onConnect: () => void }) {
       </section>
       <section className="protocol-section">
         <h2>What your agent does next</h2>
+        <a className="btn btn-secondary btn-sm" href="#journey">
+          Walk through the live agent journey <ArrowRight size={14} />
+        </a>
         <ol className="steps">
           {steps.map((step, i) => (
             <li className="step" key={step.title}>

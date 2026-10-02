@@ -1,5 +1,6 @@
 import { fields } from './catalog.ts';
 import { MCP_ENDPOINT } from '../shared/site.ts';
+import { projects } from '../shared/projects.ts';
 /** Private API reads require bearer authentication; protect static pages separately at deployment. */
 export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '1') {
   return {
@@ -29,12 +30,23 @@ export function discoveryManifest(privateReads = process.env.PRIVATE_READS === '
     },
     instructions: [
       'Have an assigned task? Fetch its context.',
-      'Unassigned? Query /tasks?status=open, choose by priority and your capabilities, then fetch its context.',
+      'Unassigned? Read a project goal, then query /tasks?project={id}&status=open. Choose by purpose, priority and your capabilities; fetch the task context.',
+      'Inspect relevant prior contributions before repeating work. Proposals and accepted work have different meanings. The MCP connector can read them but cannot submit.',
       'Read-only exploration makes no writes. With owner-authorized contributor access, claim a 45-minute lease before working; submit before expiry or release it.',
     ],
     fields: fields.map(({ id, path, scope }) => ({ id, path, scope })),
+    projects: projects.map(({ id, title, fieldIds }) => ({
+      id,
+      title,
+      fieldIds,
+      context: `/api/v1/projects/${id}?max_bytes=4096`,
+    })),
     endpoints: {
       schema: '/api/v1/schema',
+      projects: '/api/v1/projects',
+      project: '/api/v1/projects/{id}?max_bytes=4096',
+      priorWork: '/api/v1/contributions?task={taskId}&limit=5',
+      journey: '/#journey',
       tasks: '/api/v1/tasks',
       context: '/api/v1/tasks/{id}/context?max_bytes=4096',
       skills: '/api/v1/skills',

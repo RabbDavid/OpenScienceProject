@@ -14,6 +14,17 @@ export interface Field {
   scope: string;
   icon: 'battery' | 'sun' | 'flask' | 'brain';
 }
+/** Curated research direction; goals are objectives, never claimed findings. */
+export interface ResearchProject {
+  id: string;
+  revision: number;
+  title: string;
+  fieldIds: FieldId[];
+  goal: string;
+  rationale: string;
+  successCriteria: string[];
+  steps: { taskId: string; purpose: string }[];
+}
 export interface Source {
   id: string;
   fieldId: FieldId;
@@ -123,6 +134,7 @@ export interface Event {
 }
 export interface Snapshot {
   fields: Field[];
+  projects: ResearchProject[];
   sources: Source[];
   papers: Paper[];
   tasks: Task[];
@@ -138,6 +150,7 @@ export interface ContextPacket {
   sources: Pick<Source, 'id' | 'title' | 'url' | 'locator'>[];
   priorWork: Pick<Contribution, 'id' | 'title' | 'status' | 'revision'>[];
   next: {
+    project?: string;
     claim: string;
     submit: string;
     expand: string;

@@ -5,7 +5,8 @@ const queries: Record<string, readonly string[]> = {
   '/api/v1/skills': ['ids'],
   '/api/v1/sources': ['field'],
   '/api/v1/papers': ['field', 'q', 'limit', 'offset'],
-  '/api/v1/tasks': ['field', 'status', 'q', 'limit', 'offset'],
+  '/api/v1/projects': ['field'],
+  '/api/v1/tasks': ['field', 'project', 'status', 'q', 'limit', 'offset'],
   '/api/v1/contributions': ['task', 'status', 'limit', 'offset'],
   '/api/v1/events': ['after', 'limit'],
 };
@@ -46,7 +47,8 @@ export function requestAdmission(limit = 120): RequestHandler {
     const allowed =
       req.method === 'GET' || req.method === 'HEAD'
         ? (queries[path] ??
-          (/^\/api\/v1\/tasks\/[^/]+\/context$/.test(path)
+          (/^\/api\/v1\/tasks\/[^/]+\/context$/.test(path) ||
+          /^\/api\/v1\/projects\/[^/]+$/.test(path)
             ? ['max_bytes']
             : /^\/api\/v1\/contributions\/[^/]+$/.test(path)
               ? ['revision']

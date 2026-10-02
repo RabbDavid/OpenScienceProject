@@ -13,22 +13,28 @@ The server's protocol tests establish MCP compatibility, not that a particular C
 
 ## Tools
 
-| Tool                    | Purpose                                                           | Bounds                                                          |
-| ----------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------- |
-| `get_research_overview` | Fields and required policy                                        | No arguments; no corpus dump                                    |
-| `list_questions`        | Compact question cards                                            | Optional field, status and query; limit 1–20, offset 0–100000   |
-| `get_question_context`  | Existing task context with source constraints and expansion links | Known task ID; 1536–16000 UTF-8 bytes, default 4096             |
-| `get_source`            | Curated metadata and original source locator                      | One known catalog ID; no external fetch                         |
-| `search_literature`     | Background paper metadata                                         | Query ≤200 characters; optional field; limit 1–20               |
-| `get_paper`             | Paper provenance, metadata and recorded references                | One known paper ID                                              |
-| `search`                | Compact combined catalog results                                  | Query 1–200 characters; at most 10 results                      |
-| `fetch`                 | Record returned by search                                         | Typed `task:`, `source:` or `paper:` ID, never an arbitrary URL |
+| Tool                    | Purpose                                                           | Bounds                                                                    |
+| ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `get_research_overview` | Fields and required policy                                        | No arguments; no corpus dump                                              |
+| `list_projects`         | Curated goals and live question counts                            | Optional field ID                                                         |
+| `get_project`           | Goal, rationale, success criteria, scope and question links       | Known project ID; 1536–16000 bytes, default 4096                          |
+| `list_contributions`    | Public prior-work cards for a task                                | Optional status; limit 1–10, paginated; held content excluded             |
+| `get_contribution`      | Public content, citations and reviews of the selected revision    | Known contribution ID; optional revision; 1536–64000 bytes, default 16000 |
+| `list_questions`        | Compact question cards                                            | Optional field, status and query; limit 1–20, offset 0–100000             |
+| `get_question_context`  | Existing task context with source constraints and expansion links | Known task ID; 1536–16000 UTF-8 bytes, default 4096                       |
+| `get_source`            | Curated metadata and original source locator                      | One known catalog ID; no external fetch                                   |
+| `search_literature`     | Background paper metadata                                         | Query ≤200 characters; optional field; limit 1–20                         |
+| `get_paper`             | Paper provenance, metadata and recorded references                | One known paper ID                                                        |
+| `search`                | Compact combined catalog results                                  | Query 1–200 characters; at most 10 results                                |
+| `fetch`                 | Record returned by search                                         | Typed `task:`, `source:` or `paper:` ID, never an arbitrary URL           |
 
 Every tool declares read-only, non-destructive and idempotent behavior. No tool claims a lease, creates a contribution, reviews work, executes code or calls another integration. The original authenticated contribution API remains separate. Original-source inspection needs a separately available reading tool: returning a catalog record cannot establish that a paper was read.
 
 The context budget measures the serialized **inner JSON packet**. Escaping and the MCP response envelope make its HTTP response larger. Report these quantities separately; neither is an actual tokenizer count. The same context builder preserves essential policy, acceptance criteria, exclusions, approved sources and expansion links. A `context_budget_too_small` tool error is a legitimate refusal with status 413 in its error data; the MCP transport can still return HTTP 200.
 
-Tool replies carry one JSON text block, avoiding a duplicate `structuredContent` copy. Catalog metadata, public prior-work cards and accepted work keep their distinct meanings. The plugin does not expose contribution bodies or historical revisions. Context prior-work cards use the existing public-access filter, even if a curator key is supplied.
+Tool replies carry one JSON text block, avoiding a duplicate `structuredContent` copy. Catalog metadata, public proposals and accepted work keep their distinct meanings. `list_questions` additionally accepts `project_id` conjunctively with its other filters. Project goals are curated objectives, not completed findings.
+
+`get_contribution` exposes only public low-risk content and reviews targeting the selected revision. A currently held/risk-flagged record and risk-flagged historical revisions are unavailable, even if a curator key is supplied. The returned status describes the current record, not the historical revision's review decision. Full content is budgeted as actual UTF-8 JSON and never silently truncated; the separate HTTP API retains full history. Context cards and contribution tools use public-access restrictions even on a privately authenticated instance.
 
 ## Portable package and research skill
 

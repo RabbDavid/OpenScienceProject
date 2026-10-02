@@ -635,3 +635,45 @@ test('write budgets and JSON limits fail explicitly', async () => {
   assert.equal(schema.response.status, 200);
   assert.ok(!schema.data.submit.required.includes('origin'));
 });
+
+test('projects organize live tasks without rewriting definitions and preserve JSON budgets', async () => {
+  const f = await fixture();
+  const before = await f.store.tasks();
+  const list = await f.call('/projects');
+  assert.equal(list.response.status, 200);
+  assert.equal(list.data.total, 4);
+  for (const card of list.data.items) {
+    const context = await f.call(`/projects/${card.id}?max_bytes=4096`);
+    assert.equal(context.response.status, 200);
+    assert.equal(Buffer.byteLength(JSON.stringify(context.data)), context.data.budget.actualBytes);
+    assert.ok(context.data.budget.actualBytes <= 4096);
+    assert.equal(context.data.recordKind, 'curated_research_direction');
+    assert.equal(context.data.questions.length, 2);
+    assert.ok(context.data.scope.length && context.data.successCriteria.length);
+    assert.equal(context.data.steps, undefined, 'Do not duplicate the question-purpose list');
+    const tasks = await f.call(`/tasks?project=${card.id}&status=open&limit=5`);
+    assert.deepEqual(
+      tasks.data.items.map((task: { id: string }) => task.id).sort(),
+      context.data.questions.map((task: { id: string }) => task.id).sort(),
+    );
+    const workContext = await f.call(`/tasks/${tasks.data.items[0].id}/context?max_bytes=4096`);
+    assert.ok(workContext.data.next.project.includes(card.id));
+  }
+  assert.deepEqual(await f.store.tasks(), before);
+  const filtered = await f.call('/tasks?project=materials-evaluation&field=batteries');
+  assert.equal(filtered.data.total, 0, 'Project and field filters are conjunctive');
+  assert.equal((await f.call('/projects/unknown')).response.status, 404);
+  assert.equal((await f.call('/tasks?project=unknown')).response.status, 404);
+  assert.equal((await f.call('/tasks?project=x&project=y')).response.status, 400);
+  assert.equal((await f.call('/projects?field=unknown')).response.status, 400);
+  assert.equal(
+    (await f.call('/projects/materials-evaluation?max_bytes=1536')).response.status,
+    413,
+  );
+  const task = await f.store.task('matbench-split-audit');
+  const actor = await f.store.authenticate(f.key.key);
+  await f.store.claim(task.id, actor, task.revision);
+  const live = await f.call('/projects?field=materials');
+  assert.equal(live.data.items[0].claimed, 1);
+  assert.equal(live.data.items[0].open, 1);
+});

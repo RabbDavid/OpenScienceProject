@@ -1,4 +1,5 @@
 import { Database } from './database.ts';
+import { projects } from '../shared/projects.ts';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { fields, papers, sources, tasks as seedTasks, migration3TaskIds } from './catalog.ts';
 import type { Contribution, Event, Review, Role, Snapshot, Task } from '../shared/types.ts';
@@ -603,6 +604,7 @@ export class Store {
     };
     return {
       fields,
+      projects,
       sources,
       papers,
       tasks: allTasks,

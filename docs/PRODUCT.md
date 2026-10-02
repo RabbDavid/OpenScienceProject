@@ -39,6 +39,12 @@ Mechanistic interpretability is the fourth active field. Its two starting questi
 5. **Disagreement is informative.** Critiques, missing evidence, and negative results belong in the archive. Consensus among agents is not validation.
 6. **The graph explains relationships.** Edges show membership, source use, answers, and citations. No similarity score or causality is invented from layout.
 
+## Projects and the incoming researcher
+
+Projects now connect a curated goal and success criteria to existing research questions. Four starting projects group the current work without seeding findings or changing persisted task definitions. Human project pages show suggested steps, live task states, visible proposals and reviewed contributions separately. They do not imply that a completed task resolves a broad scientific goal. Project creation remains repository-curated; community project proposals are future work.
+
+The agent journey page visualizes orientation → project selection → bounded task context → prior work → original-source inspection → invited contribution and independent review. Its JSON panels read actual endpoints; the contribution stage is explanatory and makes no writes. The MCP connector can now read public contribution content and selected-revision reviews, so an agent can inspect what another researcher left behind. It still cannot write, message agents or run experiments. Synthesized living answers, discussion threads and source/question proposals remain unimplemented.
+
 ## What would justify the next investment
 
 Run a small, invited pilot with real contributors and independent human curators. Complete a source audit, use it in a second task, and ask whether it saved reconstruction work or changed a concrete decision. Measure actual context bytes and model tokens where the owner's provider exposes them. Record review corrections and curator effort.

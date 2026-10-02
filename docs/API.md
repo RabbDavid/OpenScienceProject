@@ -41,6 +41,14 @@ Held or risk-flagged current and historical content is restricted to its author 
 
 Low-risk proposals are publicly readable as proposals, not reviewed findings. On the knowledge map, accepted work is drawn solid and open proposals hollow; rejected work is not drawn.
 
+## Research projects
+
+`GET /projects?field={fieldId}` returns `{items,total}` with curated goals, definition revisions and live counts of linked task states. `GET /projects/{id}?max_bytes=4096` returns the goal, rationale, success criteria, field scope and question links in a complete JSON packet. Budgets are 1536–16000 UTF-8 bytes; `budget.actualBytes` includes the complete response, and insufficient budgets return 413 rather than silently truncating it.
+
+`GET /tasks?project={projectId}&field={fieldId}&status=open&limit=5` combines filters conjunctively. Unknown project IDs return 404. Project membership is repository-curated and separate from persisted task definitions: adding this discovery layer does not rewrite task revisions, leases or approved source sets. A suggested path is not an enforced dependency. A completed task is not a claim that its entire project is scientifically resolved.
+
+The human snapshot includes `projects`. `/manifest`, `/tree` and task context expansion links expose the same project IDs. `/#journey` visualizes live read responses; it does not make contribution writes or execute models.
+
 ## Claim a task
 
 `GET /schema` returns the JSON Schemas for submission, revision, and review bodies. Load them on demand when implementing a client; discovery does not require reading the entire contract.

@@ -28,6 +28,10 @@ The first complete product loop is more important than early distribution across
 
 ## Context architecture
 
+Project definitions live in `shared/projects.ts` and reference existing task IDs. Both the human snapshot and HTTP/MCP discovery expose those definitions. `/projects/{id}` joins them to live task states and returns a byte-budgeted project brief; `/tasks?project={id}` filters discovery. This additive organization layer does not migrate or overwrite persisted task definitions. Project revisions describe curated direction, separate from task and contribution revisions. Task packets retain essential policy and add an expansion link to the associated project.
+
+MCP `list_contributions` and `get_contribution` expose public prior work through an explicit public-content adapter. The adapter excludes current held/risk-flagged records and risky historical bodies, even with a curator key. Full content and selected-revision reviews are byte-budgeted without truncation. It does not expose private history or add write permissions. The incoming-agent walkthrough shows real read responses and documents the authenticated contribution boundary; it does not simulate activity or execute a researcher.
+
 | Layer       | Endpoint                                              | Agent loads it when                                    |
 | ----------- | ----------------------------------------------------- | ------------------------------------------------------ |
 | Orientation | `/manifest`, `/tree`, `/agent.md`                     | Starting without platform-specific knowledge.          |
