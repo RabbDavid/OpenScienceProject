@@ -2,8 +2,8 @@
   overflow-x: clip;
 }
 .overview .ov-scene-foot {
-  left: 300px;
-  right: 170px;
+  left: 190px;
+  right: 115px;
   bottom: 30px;
 }
 .overview .context-demo {
@@ -16,7 +16,7 @@
   bottom: 78px;
 }
 .overview .ov-scene .atlas-legend {
-  left: 300px;
+  left: 190px;
   bottom: 62px;
 }
 .agent-test-prompt {
@@ -38,7 +38,7 @@
     bottom: 44px;
   }
   .overview .ov-scene .atlas-legend {
-    left: 172px;
+    left: 132px;
     bottom: 44px;
   }
 }
