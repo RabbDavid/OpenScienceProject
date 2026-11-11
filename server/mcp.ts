@@ -62,6 +62,7 @@ export function createResearchMcpServer(store: Store, privateReads = false, writ
   const server = new McpServer(
     { name: 'openscience', title: 'OpenScience', version: '0.1.0', websiteUrl: PUBLIC_SITE_ORIGIN },
     {
+      maxToolInputElements: 1000,
       capabilities: { extensions: { 'io.modelcontextprotocol/skills': {} } },
       instructions:
         (writer

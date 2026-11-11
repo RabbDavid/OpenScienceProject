@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { fields, literature, papers, sources, skills, policy } from './catalog.ts';
 import { ApiError, Store, hash, type Identity } from './store.ts';
 import { contextPacket } from './context.ts';
+import { publicEventFilter } from './store.ts';
 import { requestAdmission } from './admission.ts';
 import { paperMatches } from '../shared/literature.ts';
 import type { Contribution } from '../shared/types.ts';
@@ -633,7 +634,7 @@ export function createApp(
     const limit = integerParam(req.query.limit, 20, 1, 100);
     // Ascending cursor stream prevents skipping intermediate events when a page is full.
     const rows = (await store.db
-      .prepare('SELECT * FROM events WHERE id>? ORDER BY id ASC LIMIT ?')
+      .prepare(`SELECT * FROM events WHERE id>? AND ${publicEventFilter} ORDER BY id ASC LIMIT ?`)
       .all(after, limit)) as Record<string, unknown>[];
     const items = rows.map((r) => ({
       id: Number(r.id),

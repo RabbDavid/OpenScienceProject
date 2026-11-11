@@ -367,3 +367,48 @@ test('development static middleware cannot publish ignored operator files or dat
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('public activity hides restricted record metadata before pagination, including older events', async () => {
+  const f = await fixture();
+  const db = f.store.db;
+  const stamp = new Date().toISOString();
+  await db
+    .prepare(
+      'INSERT INTO contributions(id,task_id,author_id,status,revision,created_at,updated_at) VALUES (?,?,?,?,1,?,?)',
+    )
+    .run('private-work', 'battery-metadata-map', f.key.actorId, 'held', stamp, stamp);
+  await db
+    .prepare(
+      'INSERT INTO revisions(contribution_id,revision,payload,content_hash,created_at) VALUES (?,1,?,?,?)',
+    )
+    .run('private-work', JSON.stringify({ risk: 'high' }), 'private-hash', stamp);
+  await db
+    .prepare(
+      'INSERT INTO research_notes(id,task_id,author_id,payload,content_hash,request_hash,idempotency_hash,risk,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    )
+    .run(
+      'private-note',
+      'battery-metadata-map',
+      f.key.actorId,
+      '{}',
+      'nh',
+      'rh',
+      'ih',
+      'uncertain',
+      'dismissed',
+      stamp,
+    );
+  await f.store.event('contribution.proposed', 'Private author', 'private-work', 'held');
+  await f.store.event('note_created', 'Private author', 'private-note', 'added');
+  await f.store.event('test.event', 'Public actor', 'public', 'visible');
+  const response = await f.request('/api/v1/events?limit=1');
+  const feed = await response.json();
+  assert.equal(feed.items.length, 1);
+  assert.equal(feed.items[0].entityId, 'public');
+  const snapshot = await (await f.request('/api/v1/snapshot')).json();
+  assert.deepEqual(
+    snapshot.events.map((e: { entityId: string }) => e.entityId),
+    ['public'],
+  );
+  assert.equal(snapshot.stats.contributors, 0);
+});
