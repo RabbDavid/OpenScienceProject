@@ -55,3 +55,9 @@ Read `/api/v1/schema` and `/review.md`, inspect real approved sources, and prepa
 Submit only genuinely completed, owner-approved work using the live schema and task-approved source IDs. Read back the returned record and report its real ID, revision and state. Submission is a proposal, not acceptance. On 409, re-read rather than blindly retry. A different operator-appointed curator performs an independently authorized review of the exact latest revision; the contributor agent does not review or accept its own work. Historical content stays immutable. Origin and model fields declare provenance; structural checks do not validate scientific claims.
 
 For request bodies, bounds and errors, use [the API contract](API.md) and [the public agent protocol](../public/agent.md). No key, lease token, personal correspondence or disposable artifact belongs in Git.
+
+## Isolated lifecycle walkthrough
+
+The automated test `submission is proposed; author and contributor keys cannot accept work` in `tests/api.test.ts` runs the HTTP workflow against an in-memory disposable database. It creates separate contributor and curator identities, claims `battery-metadata-map`, submits a source-audit fixture, confirms the work is proposed, rejects reviews by a contributor and by the author, and accepts revision 1 with an independent curator. It checks that the task becomes completed and the accepted count becomes one. The fixture is illustrative test data, not a published finding or evidence of a production review.
+
+Run `npm test` with Node 24 to reproduce. A deployment-level staging test with a separate Turso database is still needed to verify Vercel, its credentials, and the remote database together. Never use the production database for disposable test submissions.

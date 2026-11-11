@@ -412,3 +412,47 @@ test('public activity hides restricted record metadata before pagination, includ
   );
   assert.equal(snapshot.stats.contributors, 0);
 });
+
+test('proxy trust separates forwarded clients only in the configured Vercel mode', async () => {
+  const originalVercel = process.env.VERCEL;
+  const originalTrust = process.env.TRUST_PROXY;
+  const store = new Store(':memory:');
+  await store.ready;
+  try {
+    process.env.VERCEL = '1';
+    delete process.env.TRUST_PROXY;
+    const vercel = createApp(store, { requestLimit: 1 });
+    process.env.TRUST_PROXY = '0';
+    const untrusted = createApp(store, { requestLimit: 1 });
+    for (const [app, expected] of [
+      [vercel, 200],
+      [untrusted, 429],
+    ] as const) {
+      const server = await new Promise<Server>((resolve) => {
+        const listening = app.listen(0, '127.0.0.1', () => resolve(listening));
+      });
+      const url = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/v1/fields`;
+      try {
+        assert.equal(
+          (await fetch(url, { headers: { 'X-Forwarded-For': '192.0.2.1' } })).status,
+          200,
+        );
+        assert.equal(
+          (await fetch(url, { headers: { 'X-Forwarded-For': '192.0.2.2' } })).status,
+          expected,
+        );
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    }
+  } finally {
+    if (originalVercel === undefined) delete process.env.VERCEL;
+    else process.env.VERCEL = originalVercel;
+    if (originalTrust === undefined) delete process.env.TRUST_PROXY;
+    else process.env.TRUST_PROXY = originalTrust;
+    await store.close();
+  }
+});

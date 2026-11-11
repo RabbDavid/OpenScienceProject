@@ -71,7 +71,13 @@ export function createApp(
   const notebook = new Notebook(store);
   const privateReads = options.privateReads ?? process.env.PRIVATE_READS === '1';
   app.disable('x-powered-by');
-  if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
+  // Vercel overwrites client-supplied forwarding headers at its edge. Elsewhere,
+  // proxy trust is opt-in and must match the deployment's network boundary.
+  if (
+    process.env.TRUST_PROXY === '1' ||
+    (process.env.VERCEL === '1' && process.env.TRUST_PROXY !== '0')
+  )
+    app.set('trust proxy', 1);
   app.use(
     helmet({
       contentSecurityPolicy: {

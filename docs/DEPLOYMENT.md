@@ -31,3 +31,7 @@ The database adapter uses serialized write transactions for owner-bound leases, 
 ## Isolation and recovery
 
 Use a separate Turso database for development or disposable integration tests. Never attach production storage to preview or pull-request deployments. Production backups and restoration checks remain an operator responsibility before meaningful contributions accumulate. To return to local operation, unset both Turso variables and use `DATABASE_PATH=./data/commons.sqlite`.
+
+## Client IP admission
+
+On Vercel the app trusts one proxy hop by default; Vercel documents that it overwrites client-supplied `X-Forwarded-For`. Set `TRUST_PROXY=0` to disable this behavior. Outside Vercel, proxy trust is disabled unless `TRUST_PROXY=1` is set, and should only be enabled behind a trusted proxy that sanitizes forwarded headers. A proxy in front of Vercel may cause the proxy's IP to be used rather than the end user's IP. The limiter is per instance, not a substitute for the Vercel firewall. Verify with two actual clients after deployment; a local simulation cannot prove the production network path. See [Vercel request headers](https://vercel.com/docs/headers/request-headers).
