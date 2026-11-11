@@ -15,7 +15,7 @@ const queries: Record<string, readonly string[]> = {
  * This does not protect function-invocation/CDN quotas and is not a distributed limiter. */
 export function requestAdmission(limit = 120): RequestHandler {
   let resetAt = Date.now() + 60_000;
-  let count = 0;
+  const counts = new Map<string, number>();
   return (req, _res, next) => {
     const path = req.path.toLowerCase().replace(/\/+$/, '') || '/';
     if (
@@ -27,15 +27,21 @@ export function requestAdmission(limit = 120): RequestHandler {
     }
     const stamp = Date.now();
     if (stamp >= resetAt) {
-      count = 0;
+      counts.clear();
       resetAt = stamp + 60_000;
     }
-    if (++count > limit) {
+    // req.ip follows Express's explicitly configured trust-proxy policy.
+    const client = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    // Bound memory; once full, unfamiliar clients share an overflow bucket.
+    const key = counts.has(client) || counts.size < 10_000 ? client : 'overflow';
+    const count = (counts.get(key) ?? 0) + 1;
+    counts.set(key, count);
+    if (count > limit) {
       next(
         new ApiError(
           429,
           'request_rate_limited',
-          'Request limit reached for this service instance. Retry in one minute.',
+          'Request limit reached for this visitor on this service instance. Retry in one minute.',
         ),
       );
       return;

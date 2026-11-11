@@ -21,6 +21,14 @@ export interface Identity {
 export const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const now = () => new Date().toISOString();
 const id = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '').slice(0, 20)}`;
+// Filter before pagination, including legacy events and records later placed on hold.
+export const publicEventFilter = `NOT EXISTS (
+  SELECT 1 FROM contributions c WHERE c.id=events.entity_id AND (
+    c.status='held' OR EXISTS (SELECT 1 FROM revisions r WHERE r.contribution_id=c.id AND json_extract(r.payload,'$.risk')!='low')
+  )
+) AND NOT EXISTS (
+  SELECT 1 FROM research_notes n WHERE n.id=events.entity_id AND (n.risk!='low' OR n.status='held')
+)`;
 export class Store {
   db: Database;
   readonly ready: Promise<void>;
@@ -596,7 +604,9 @@ export class Store {
     await this.ready;
     return (
       (await this.db
-        .prepare('SELECT * FROM events WHERE id>? ORDER BY id DESC LIMIT ?')
+        .prepare(
+          `SELECT * FROM events WHERE id>? AND ${publicEventFilter} ORDER BY id DESC LIMIT ?`,
+        )
         .all(after, limit)) as Record<string, unknown>[]
     )
       .map((r) => ({
@@ -618,7 +628,9 @@ export class Store {
       count: number;
     };
     const contributors = (await this.db
-      .prepare('SELECT COUNT(DISTINCT author_id) AS count FROM contributions')
+      .prepare(
+        "SELECT COUNT(DISTINCT c.author_id) AS count FROM contributions c JOIN revisions r ON r.contribution_id=c.id AND r.revision=c.revision WHERE c.status!='held' AND json_extract(r.payload,'$.risk')='low'",
+      )
       .get()) as {
       count: number;
     };
