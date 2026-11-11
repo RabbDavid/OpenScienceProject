@@ -399,11 +399,11 @@ export function App() {
           <div className="topbar-end">
             <button
               className="search-btn"
-              aria-label="Search literature"
+              aria-label="Search research library"
               onClick={() => setSearchOpen(true)}
             >
               <Search size={14} />
-              <span>Search literature</span>
+              <span>Search research library</span>
               <kbd>Ctrl K</kbd>
             </button>
             <button

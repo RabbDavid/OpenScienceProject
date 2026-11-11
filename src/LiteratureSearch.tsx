@@ -27,19 +27,20 @@ export function LiteratureSearch({
   const tasks = term ? data.tasks.filter((task) => matches(`${task.title} ${task.question}`)) : [];
 
   return (
-    <Modal title="Search literature" onClose={onClose} wide bare>
+    <Modal title="Search research library" onClose={onClose} wide bare>
       <label className="palette-input">
         <Search size={18} />
         <input
           autoFocus
           data-autofocus
-          aria-label="Search literature"
+          aria-label="Search research library"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Title, author or topic…"
         />
         <kbd>Esc</kbd>
       </label>
+      <p className="palette-group">Search the local catalog of papers, sources, and questions.</p>
       <div className="palette-results">
         {papers.length > 0 && <div className="palette-group">Papers</div>}
         {papers.slice(0, 6).map((paper) => (
